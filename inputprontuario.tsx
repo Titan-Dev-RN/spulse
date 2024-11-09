@@ -269,61 +269,78 @@ const InputCRUD = () => {
     };
 
     const saveVisitor = async () => {
-
-        // Verifica se currentUser e user_id estão disponíveis
+        // Verifica se o usuário está logado
         if (!contextCurrentUser) {
             Alert.alert('Erro', 'Você precisa estar logado para salvar um visitante.');
             return;
         }
+    
+        try {
+            // Busca o pavilhão do usuário logado para verificar se ele está no "HALL" (pavillion = 1)
+            const { data: pavilionData, error: pavilionError } = await supabase
+                .from('checkpoints')
+                .select('pavilion, id, user_email')
+                .eq('user_email', contextCurrentUser)
+                //.limit(1)  // Limita a consulta a uma linha
+                .order('id', { ascending: false }) // Ordena em ordem decrescente para pegar o último registro
+                .limit(1) // Limita a consulta a um registro (último)
+                .single();
+    
+            const { data: userData, error: userError } = await supabase
+            .from('usersSpulse')
+            .select('id, name') // Assumindo que você tem uma coluna id para o user_id
+            .eq('email', contextCurrentUser)
+            .single();
 
 
-        // Aqui você deve buscar o user_id correspondente ao currentUser (email ou id)
-        const { data: userData, error: userError } = await supabase
-        .from('usersSpulse')
-        .select('id, name') // Assumindo que você tem uma coluna `id` para o user_id
-        .eq('email', contextCurrentUser)
-        .single();
-
-        if (userError || !userData) {
-            Alert.alert('Erro', 'Não foi possível encontrar o usuário logado.');
-            console.error('Erro ao encontrar usuário:', userError);
-            return;
-        }
-        const { id: user_id, name: userName  } = userData; // Obtém o user_id do usuário logado
-
-        const { data, error } = await supabase
-            .from('visitors')
-            .insert([{
-                name: visitorData.name,
-                gender: visitorData.gender,
-                age: visitorData.age,
-                hours: new Date().toLocaleTimeString(), // Armazena a hora atual
-                date: new Date().toISOString().split('T')[0], // Armazena a data atual
-                latitude: currentLatitude,
-                longitude: currentLongitude,
-                user_id: user_id, // Associa o visitante ao usuário que fez o registro
-                registered_by: userName // Adiciona o nome do usuário que registrou
-            }]);
+            if (pavilionError || !pavilionData) {
+                Alert.alert('Erro', 'Não foi possível encontrar o pavilhão do usuário logado.');
+                console.error('Erro ao encontrar o pavilhão:', pavilionError);
+                return;
+            }
+            const { id: user_id, name: userName  } = userData; // Obtém o user_id do usuário logado
+            const { pavilion } = pavilionData;
+            // Log para verificar os valores de pavilion e userName
+            console.log(`Pavilion: ${pavilion}, Usuário: ${contextCurrentUser}`);
 
 
-
-        if (error) {
-            Alert.alert('Erro', 'Não foi possível salvar o registro de visitante');
-            console.error('Erro ao salvar:', error);
-        } else {
-            Alert.alert('Sucesso', 'Visitante salvo com sucesso!');
-
-
-
-            // Salvar o nome do usuário que registrou
-            setRegisteredBy(userName);
-
-            fetchVisitors();
-            setVisitorData({ name: '', gender: '', hours: '', age: '', user_id: '' });
-            // Após salvar com sucesso, deseleciona o prontuário
-            setSelectedProntuario(null);
+            // Verifica se o usuário está no "HALL"
+            if (pavilion !== 1) {
+                Alert.alert('Erro', 'Você precisa estar no HALL para salvar um visitante.');
+                return;
+            }
+    
+            // Insere o visitante no banco de dados
+            const { data, error } = await supabase
+                .from('visitors')
+                .insert([{
+                    name: visitorData.name,
+                    gender: visitorData.gender,
+                    age: visitorData.age,
+                    hours: new Date().toLocaleTimeString(),
+                    date: new Date().toISOString().split('T')[0],
+                    latitude: currentLatitude,
+                    longitude: currentLongitude,
+                    user_id: user_id,
+                    registered_by: userName
+                }]);
+    
+            if (error) {
+                Alert.alert('Erro', 'Não foi possível salvar o registro de visitante');
+                console.error('Erro ao salvar:', error);
+            } else {
+                Alert.alert('Sucesso', 'Visitante salvo com sucesso!');
+                setRegisteredBy(userName);
+                fetchVisitors();
+                setVisitorData({ name: '', gender: '', hours: '', age: '', user_id: '' });
+                setSelectedProntuario(null); // Deseleciona o prontuário após o salvamento
+            }
+        } catch (error) {
+            console.error('Erro ao salvar visitante:', error);
+            Alert.alert('Erro', 'Ocorreu um erro ao tentar salvar o visitante.');
         }
     };
+    
 
     const editProntuario = async (prontuarioId, updatedData) => {
         const { data, error } = await supabase
@@ -422,7 +439,7 @@ const InputCRUD = () => {
 
 
 
-    const deleteVisitors = async (prontuarioId) => {
+    /*const deleteVisitors = async (prontuarioId) => {
 
          // Verifica se o prontuarioId é um valor válido
         if (typeof prontuarioId !== 'number' && typeof prontuarioId !== 'string') {
@@ -447,7 +464,7 @@ const InputCRUD = () => {
                 console.error('Erro ao tentar deletar o prontuário:', err);
                 Alert.alert('Erro', 'Algo deu errado ao tentar deletar o prontuário.');
             }
-    };
+    };*/
     
     // Exemplo de uso
     // deleteProntuario(prontuarioId);
@@ -560,9 +577,9 @@ const InputCRUD = () => {
                         </TouchableOpacity>
 
                         {/*Botao para editar individualmente cada usuario*/}
-                        <TouchableOpacity onPress={() => deleteVisitors(visitor.id)}>
+                        {/*<TouchableOpacity onPress={() => deleteVisitors(visitor.id)}>
                             <Text style={styles.mapButton}>Deletar o Visitante</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity>*/}
 
                         <TouchableOpacity onPress={() => selectProntuario(visitor)}>
                             <Text style={selectedProntuario?.id === visitor.id ? styles.selectedButton : styles.mapButton}>
