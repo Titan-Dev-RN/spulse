@@ -9,35 +9,52 @@ import { WebView } from 'react-native-webview'; // Importando o WebView para exi
 
 
 const ProntuarioScreen = ({ route }) => {
-    const { id } = route.params; // Recebe o ID do prontuário
+    const { id } = route.params; // Use um fallback caso `route.params` esteja indefinido
+    console.log('ID recebido:', id);
+
+
+    //const { id } = route.params; // Recebe o ID do prontuário
     const [visitorData, setVisitorData] = useState(null); // Estado para armazenar os dados do prontuário
     const [mapUrl, setMapUrl] = useState({ latitude: null, longitude: null }); // URL para exibir o mapa
     const [modalVisible, setModalVisible] = useState(false); // Estado para controlar a visibilidade do modal
     const [currentLatitude, setCurrentLatitude] = useState('');
     const [currentLongitude, setCurrentLongitude] = useState('');
 
-
+    useEffect(() => {
+        if (id) {
+            fetchVisitor(); // Chama apenas se `id` estiver definido
+        } else {
+            Alert.alert('Erro', 'ID do prontuário não fornecido.');
+        }
+    }, [id]);
+    
+    
 
     const fetchVisitor = async () => {
+        if (!id) {
+            console.error('ID inválido para consulta.');
+            return;
+        }
+    
         try {
             const { data, error } = await supabase
-                .from('visitors') // Ajuste se a tabela tiver um nome diferente
+                .from('visitors')
                 .select('*')
-                .eq('id', id); // Filtra pelo ID do prontuário
-
-            if (error) {
-                throw error; // Lança um erro para ser tratado
-            }
+                .eq('id', id);
+    
+            if (error) throw error;
+    
             if (data && data.length > 0) {
-                setVisitorData(data[0]); // Armazena os dados do prontuário
+                setVisitorData(data[0]);
             } else {
                 Alert.alert('Erro', 'Prontuário não encontrado.');
             }
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível buscar os dados do prontuário.');
             console.error('Erro ao buscar prontuário:', error);
+            Alert.alert('Erro', 'Não foi possível buscar os dados do prontuário.');
         }
     };
+    
 
     
 

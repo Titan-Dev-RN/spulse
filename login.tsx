@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from './services/supabase'; // Importando o cliente Supabase
 import { useUserContext } from './UserContext'; // Importando o contexto corretamente
 //import { checkpoint } from './checkpoint'; //Importando a página do CheckPoint
+import tw from 'tailwind-react-native-classnames';
+
 
 const Login = () => {
     const [email, setEmail] = useState(''); 
@@ -43,65 +45,46 @@ const Login = () => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Login</Text>
+        <View style={tw`flex-1 bg-gray-100 justify-center p-6`}>
+            {/* Título */}
+            <Text style={tw`text-3xl font-bold text-center text-black mb-8`}>Login do Agente</Text>
+
+            {/* Campo Email */}
             <TextInput
-                style={styles.input}
+                style={tw`border border-gray-300 bg-white rounded-lg px-4 py-3 mb-4 text-black`}
                 placeholder="Email"
                 placeholderTextColor="#888888"
                 value={email}
                 onChangeText={setEmail}
             />
+
+            {/* Campo Senha */}
             <TextInput
-                style={styles.input}
+                style={tw`border border-gray-300 bg-white rounded-lg px-4 py-3 mb-6 text-black`}
                 placeholder="Senha"
                 placeholderTextColor="#888888"
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
             />
-            <Button title="Entrar" onPress={handleLogin} />
-            <Text style={styles.registerText}>
-                Não tem uma conta?{' '}
+
+            {/* Botão Entrar */}
+            <TouchableOpacity
+                onPress={handleLogin}
+                style={tw`bg-blue-500 rounded-lg p-4 mb-4`}
+            >
+                <Text style={tw`text-white text-center font-bold`}>Entrar</Text>
+            </TouchableOpacity>
+
+            {/* Link para Registro */}
+            <View style={tw`flex-row justify-center`}>
+                <Text style={tw`text-black`}>Não tem uma conta? </Text>
                 <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
-                    <Text style={styles.link}>Registre-se aqui</Text>
+                    <Text style={tw`text-blue-500 font-bold`}>Registre-se aqui</Text>
                 </TouchableOpacity>
-            </Text>
+            </View>
         </View>
     );
 };
-
-// Estilos do componente
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 16,
-        backgroundColor: '#f4f4f4',
-    },
-    title: {
-        fontSize: 24,
-        textAlign: 'center',
-        marginBottom: 20,
-        color: 'black',
-    },
-    input: {
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 4,
-        marginBottom: 15,
-        paddingHorizontal: 10,
-        color: 'black',
-    },
-    registerText: {
-        textAlign: 'center',
-        marginTop: 20,
-        color: 'black',
-    },
-    link: {
-        color: '#007bff',
-    },
-});
 
 export default Login;

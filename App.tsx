@@ -8,10 +8,12 @@ import Prontuario from './prontuário';
 import Login from './login';
 import Cadastro from './cadastro';
 import ProntuarioScreen from './ProntuarioScreen';
+import InputCRUD from './inputprontuario';
 import CheckPoint from './checkpoint';
 import { useUserContext } from './UserContext';
 import { UserProvider } from './UserContext';
-
+import VisitorRegistration from './PaginaProntuarios';
+import RegistrarVisitante from './RegistrarVisitante';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,29 +22,46 @@ const App = () => {
         <UserProvider>
             <NavigationContainer>
                 <Stack.Navigator>
-
+                    {/*
                     <Stack.Screen 
                         name="Login" 
                         component={Login} 
                         options={{ headerShown: false }} // Oculta o cabeçalho
                     />
+                    
                     <Stack.Screen 
                         name="CheckPoint" 
                         component={CheckPoint} 
                         options={{ headerShown: false }} // Oculta o cabeçalho
                     />
+                    
                     <Stack.Screen 
                         name="Prontuario" 
                         component={Prontuario} 
                         options={{ title: 'Prontuário' }} // Título para a tela de prontuário
                     />
-
                     <Stack.Screen 
+                        name="InputCRUD" 
+                        component={InputCRUD} 
+                        options={{ title: 'InputCRUD' }} // Título para a tela do inputprontuario
+                    />*/}
+                    <Stack.Screen 
+                        name="VisitorRegistration" 
+                        component={VisitorRegistration} 
+                        options={{ title: 'VisitorRegistration' }} // Título para a tela de prontuário
+                    />
+                    {/*<Stack.Screen 
                         name="ProntuarioScreen" 
                         component={ProntuarioScreen} 
                         options={{ title: 'ProntuárioScreen' }} // Título para a tela de prontuário
+                        //initialParams={{ id: null }} // Certifique-se de que não há navegação sem o ID
                     />
                     <Stack.Screen name="Cadastro" component={Cadastro} />
+                    <Stack.Screen 
+                        name="RegistrarVisitante" 
+                        component={RegistrarVisitante} 
+                        options={{ title: 'RegistrarVisitante' }} // Título para a tela de prontuário
+                    />*/}
                 </Stack.Navigator>
             </NavigationContainer>
         </UserProvider>

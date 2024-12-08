@@ -4,6 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './services/supabase'; // Importando o cliente Supabase
 import { useUserContext } from './UserContext'; // Importando o contexto de usuário
+import useLocation from './localizacao';
+import tw from 'tailwind-react-native-classnames';
+
 
 const CheckPoint = () => {
     const [visitorData, setVisitorData] = useState({
@@ -15,6 +18,11 @@ const CheckPoint = () => {
     const [currentUser, setCurrentUser] = useState(null);
     const navigation = useNavigation(); 
     const { loginUser } = useUserContext(); // Usar o loginUser do contexto
+
+
+    const { currentLatitude, currentLongitude } = useLocation(); // Use o hook para obter as coordenadas
+
+
 
     useEffect(() => {
         const loadData = async () => {
@@ -49,8 +57,8 @@ const CheckPoint = () => {
                     pavilion: visitorData.pavilion,
                     hours: visitorData.hours,
                     date: visitorData.date,
-                    // latitude: currentLatitude,
-                    // longitude: currentLongitude,
+                    latitude: currentLatitude,
+                    longitude: currentLongitude,
                 }]);
 
             if (error) {
@@ -58,7 +66,12 @@ const CheckPoint = () => {
                 console.error('Erro ao salvar:', error);
             } else {
                 Alert.alert('Sucesso', 'Visitante salvo com sucesso!');
-                navigation.navigate('Prontuario'); // Redireciona para a tela de checkpoint
+                // Lógica de redirecionamento com base no pavilhão
+                if (visitorData.pavilion === '1') {
+                    navigation.navigate('RegistrarVisitante'); // Redireciona para VisitorRegistration
+                } else {
+                    navigation.navigate('VisitorRegistration'); // Redireciona para RegistrarVisitantes
+                }            
             }
         } else {
             Alert.alert('Erro', 'Por favor, preencha o campo de pavilhão.');
@@ -66,67 +79,51 @@ const CheckPoint = () => {
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Checkpoint de Visitantes</Text>
-            
-            {currentUser && <Text style={styles.userInfo}>Usuário Logado: {currentUser}</Text>}
-            
-            <TextInput
-                style={styles.input}
-                placeholder="Pavilhão"
-                placeholderTextColor="#888888"
-                value={visitorData.pavilion}
-                onChangeText={(text) => handleInputChange('pavilion', text)}
-            />
-            
-            <Button title="Salvar Registro" onPress={handleSaveVisitor} />
-
-            <Text style={styles.registerText}>
-                Não tem uma conta?{' '}
-                <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
-                    <Text style={styles.link}>Registre-se aqui</Text>
-                </TouchableOpacity>
+        <View style={tw`flex-1 bg-gray-100 p-6`}>
+            {/* Título */}
+            <Text style={tw`text-3xl font-extrabold text-center text-blue-600 mb-10`}>
+                Checkpoint de Visitantes
             </Text>
+
+            {/* Informação do Usuário Logado */}
+            {currentUser && (
+                <View style={tw`bg-gray-100 rounded-lg p-4 mb-6 shadow`}>
+                    <Text style={tw`text-base text-gray-700`}>
+                        Usuário Logado: <Text style={tw`font-bold text-black`}>{currentUser}</Text>
+                    </Text>
+                </View>
+            )}
+
+            {/* Campo Pavilhão */}
+            <View style={tw`mb-6`}>
+                <Text style={tw`text-lg font-semibold text-gray-700 mb-2`}>Pavilhão</Text>
+                <TextInput
+                    style={tw`border border-gray-300 bg-white rounded-lg px-4 py-3 text-black shadow`}
+                    placeholder="Digite o pavilhão"
+                    placeholderTextColor="#888888"
+                    value={visitorData.pavilion}
+                    onChangeText={(text) => handleInputChange('pavilion', text)}
+                />
+            </View>
+
+            {/* Botão Salvar Registro */}
+            <TouchableOpacity
+                onPress={handleSaveVisitor}
+                style={tw`bg-blue-500 rounded-lg p-4 mb-6 shadow-lg`}
+            >
+                <Text style={tw`text-white text-center font-bold text-lg`}>Salvar Registro</Text>
+            </TouchableOpacity>
+
+            {/* Link para Registro */}
+            <View style={tw`flex-row justify-center`}>
+                <Text style={tw`text-gray-700`}>Não tem uma conta? </Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
+                    <Text style={tw`text-blue-600 font-bold`}>Registre-se aqui</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 16,
-        backgroundColor: '#f4f4f4',
-    },
-    title: {
-        fontSize: 24,
-        textAlign: 'center',
-        marginBottom: 20,
-        color: 'black',
-    },
-    userInfo: {
-        fontSize: 18,
-        marginBottom: 20,
-        textAlign: 'center',
-        color: 'black',
-    },
-    input: {
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 4,
-        marginBottom: 15,
-        paddingHorizontal: 10,
-        color: 'black',
-    },
-    registerText: {
-        textAlign: 'center',
-        marginTop: 20,
-        color: 'black',
-    },
-    link: {
-        color: '#007bff',
-    },
-});
 
 export default CheckPoint;

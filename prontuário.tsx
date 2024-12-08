@@ -6,42 +6,7 @@ import InputProntuario from './inputprontuario';
 
 const Prontuario = () => {
 
-/*
-    const saveProntuario = async () => {
-        const { data, error } = await supabase
-            .from('pacient') // Nome da tabela no Supabase
-            .insert([
-                {
-                    name: prontuarioData.name,
-                    age: prontuarioData.age,
-                    gender: prontuarioData.gender,
-                    contact: prontuarioData.contact,
-                    address: prontuarioData.address,
-                },
-            ]);
 
-        if (error) {
-            Alert.alert('Erro', 'Não foi possível salvar o prontuário');
-            console.error('Erro ao salvar:', error);
-        } else {
-            Alert.alert('Sucesso', 'Prontuário salvo com sucesso!');
-        }
-    }  
-    
-*/
-
-    /*
-    const handleEdit = (item) => {
-        // Lógica para editar item
-        console.log('Editando item:', item);
-    };
-    */
-
-    /*const handleDelete = (item) => {
-        // Lógica para deletar item
-        console.log('Deletando item:', item);
-    };
-    */
     return (
         <ScrollView style={styles.container}>
             <InputProntuario />
