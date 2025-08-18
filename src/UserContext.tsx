@@ -8,6 +8,7 @@ export const UserProvider = ({ children }) => {
 
     const loginUser = async (userEmail) => {
         await AsyncStorage.setItem('currentUser', userEmail);
+        console.log('currentUser')
         setCurrentUser(userEmail);
     };
 

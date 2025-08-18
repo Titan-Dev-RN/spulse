@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { supabase } from './services/supabase'; // Importando o cliente Supabase
+import { supabase } from '../services/supabase'; // Importando o cliente Supabase
 import { useUserContext } from './UserContext'; // Importando o contexto corretamente
 //import { checkpoint } from './checkpoint'; //Importando a página do CheckPoint
 import tw from 'tailwind-react-native-classnames';
@@ -12,8 +12,10 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const navigation = useNavigation(); 
     const { loginUser } = useUserContext(); // Usar o loginUser do contexto
+    const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
+        setLoading(true);
         if (email && password) {
             // Verifica se o email existe
             const { data: emailData, error: emailError } = await supabase
@@ -39,15 +41,17 @@ const Login = () => {
                     navigation.navigate('CheckPoint'); // Redireciona para a tela de checkpoint
                 }
             }
+            setLoading(false);
         } else {
             Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+            setLoading(false);
         }
     };
 
     return (
         <View style={tw`flex-1 bg-gray-100 justify-center p-6`}>
             {/* Título */}
-            <Text style={tw`text-3xl font-bold text-center text-black mb-8`}>Login do Agente</Text>
+            <Text style={tw`text-3xl font-bold text-center text-black mb-8`}>Login do Controlador</Text>
 
             {/* Campo Email */}
             <TextInput
@@ -55,7 +59,7 @@ const Login = () => {
                 placeholder="Email"
                 placeholderTextColor="#888888"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={setEmail}       
             />
 
             {/* Campo Senha */}
@@ -71,9 +75,14 @@ const Login = () => {
             {/* Botão Entrar */}
             <TouchableOpacity
                 onPress={handleLogin}
-                style={tw`bg-blue-500 rounded-lg p-4 mb-4`}
+                disabled={loading}
+                style={tw`bg-blue-600 rounded-lg p-4 items-center ${loading ? 'opacity-70' : ''}`}
             >
-                <Text style={tw`text-white text-center font-bold`}>Entrar</Text>
+                {loading ? (
+                    <ActivityIndicator color="white" />
+                ) : (
+                    <Text style={tw`text-white font-bold text-lg`}>Entrar</Text>
+                )}
             </TouchableOpacity>
 
             {/* Link para Registro */}

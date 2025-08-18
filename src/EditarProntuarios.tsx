@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator, PermissionsAndroid, Platform, Modal, Linking } from 'react-native';
-import { supabase } from './services/supabase';
+import { supabase } from '../services/supabase';
 import { useUserContext } from './UserContext';
 
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, ScrollView, Button, Alert } from 'react-native';
-import { supabase } from './services/supabase'; // Importando o cliente Supabase
+import { supabase } from '../services/supabase'; // Importando o cliente Supabase
 import InputProntuario from './inputprontuario';
 
 

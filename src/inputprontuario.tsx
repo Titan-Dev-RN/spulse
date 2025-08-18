@@ -3,13 +3,13 @@ import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, Touchable
 import NfcManager, { NfcTech, Ndef, NfcEvents } from 'react-native-nfc-manager';
 import { useNavigation } from '@react-navigation/native';
 import Geolocation from '@react-native-community/geolocation'; // Importando a geolocalização
-import { supabase } from './services/supabase'; // Importando o cliente Supabase
+import { supabase } from '../services/supabase'; // Importando o cliente Supabase
 import { WebView } from 'react-native-webview'; // Importando o WebView para exibir o mapa no Modal
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUserContext } from './UserContext';
 import FuncoesNFC from './FuncoesNFC'; // Importando o componente NFC
 import { Pagination } from '@supabase/supabase-js';
-import VisitorRegistration from './PaginaProntuarios';
+import PageGeral from './PaginaProntuarios';
 
 
 const InputCRUD = () => {

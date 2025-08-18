@@ -4,16 +4,17 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 //import NfcManager, { NfcTech, Ndef, NfcEvents } from 'react-native-nfc-manager';
 //import { supabase } from './services/supabase'; // Importando o cliente Supabase
-import Prontuario from './prontuário';
-import Login from './login';
-import Cadastro from './cadastro';
-import ProntuarioScreen from './ProntuarioScreen';
-import InputCRUD from './inputprontuario';
-import CheckPoint from './checkpoint';
-import { useUserContext } from './UserContext';
-import { UserProvider } from './UserContext';
-import VisitorRegistration from './PaginaProntuarios';
-import RegistrarVisitante from './RegistrarVisitante';
+import Prontuario from './src/prontuário';
+import Login from './src/login';
+import Cadastro from './src/cadastro';
+import ProntuarioScreen from './src/ProntuarioScreen';
+import InputCRUD from './src/inputprontuario';
+import CheckPoint from './src/checkpoint';
+import { useUserContext } from './src/UserContext';
+import { UserProvider } from './src/UserContext';
+import PageGeral from './src/PaginaProntuarios';
+import RegistrarVisitante from './src/RegistrarVisitante';
+import MarcarCheckpoints from './src/MarcarCheckpoints';
 
 const Stack = createNativeStackNavigator();
 
@@ -22,7 +23,6 @@ const App = () => {
         <UserProvider>
             <NavigationContainer>
                 <Stack.Navigator>
-                    {/*
                     <Stack.Screen 
                         name="Login" 
                         component={Login} 
@@ -36,38 +36,79 @@ const App = () => {
                     />
                     
                     <Stack.Screen 
-                        name="Prontuario" 
-                        component={Prontuario} 
-                        options={{ title: 'Prontuário' }} // Título para a tela de prontuário
+                        name="PageGeral" 
+                        component={PageGeral} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
                     />
                     <Stack.Screen 
-                        name="InputCRUD" 
-                        component={InputCRUD} 
-                        options={{ title: 'InputCRUD' }} // Título para a tela do inputprontuario
-                    />*/}
-                    <Stack.Screen 
-                        name="VisitorRegistration" 
-                        component={VisitorRegistration} 
-                        options={{ title: 'VisitorRegistration' }} // Título para a tela de prontuário
-                    />
-                    {/*<Stack.Screen 
                         name="ProntuarioScreen" 
                         component={ProntuarioScreen} 
-                        options={{ title: 'ProntuárioScreen' }} // Título para a tela de prontuário
+                        options={{ headerShown: false }} // Oculta o cabeçalho
                         //initialParams={{ id: null }} // Certifique-se de que não há navegação sem o ID
                     />
-                    <Stack.Screen name="Cadastro" component={Cadastro} />
+                    <Stack.Screen
+                     name="Cadastro" 
+                     component={Cadastro}
+                     options={{ headerShown: false }} // Oculta o cabeçalho 
+                    />
                     <Stack.Screen 
                         name="RegistrarVisitante" 
                         component={RegistrarVisitante} 
-                        options={{ title: 'RegistrarVisitante' }} // Título para a tela de prontuário
-                    />*/}
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+
+                    <Stack.Screen 
+                        name="MarcarCheckpoints" 
+                        component={MarcarCheckpoints} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+
+
                 </Stack.Navigator>
             </NavigationContainer>
         </UserProvider>
     );
 };
 
+
+
+/*
+<UserProvider>
+            <NavigationContainer>
+                <Stack.Navigator>
+                    {/*<Stack.Screen 
+                        name="Login" 
+                        component={Login} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+                    
+                    <Stack.Screen 
+                        name="CheckPoint" 
+                        component={CheckPoint} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+                    
+                    <Stack.Screen 
+                        name="PageGeral" 
+                        component={PageGeral} 
+                        options={{ title: 'PageGeral' }} // Título para a tela de prontuário
+                    />
+                    <Stack.Screen 
+                        name="ProntuarioScreen" 
+                        component={ProntuarioScreen} 
+                        options={{ title: 'ProntuárioScreen' }} // Título para a tela de prontuário
+                        //initialParams={{ id: null }} // Certifique-se de que não há navegação sem o ID
+                    />
+                    {/*<Stack.Screen name="Cadastro" component={Cadastro} />
+                    <Stack.Screen 
+                        name="RegistrarVisitante" 
+                        component={RegistrarVisitante} 
+                        options={{ title: 'RegistrarVisitante' }} // Título para a tela de prontuário
+                    />?
+                </Stack.Navigator>
+            </NavigationContainer>
+        </UserProvider>
+        */
 const styles = StyleSheet.create({
     container: {
         flex: 1,

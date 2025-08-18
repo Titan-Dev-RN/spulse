@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity, ActivityIndicator, PermissionsAndroid, Platform, Modal, Linking } from 'react-native';
-import { supabase } from './services/supabase'; // Importando o cliente Supabase
+import { supabase } from '../services/supabase'; // Importando o cliente Supabase
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 /*
 const FuncoesNFC = ({ selectedProntuario, navigateToProntuarioScreen, setLink, setShowPopup }) => {
