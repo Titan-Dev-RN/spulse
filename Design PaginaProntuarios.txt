@@ -1,0 +1,80 @@
+return (
+        <View style={styles.container}>
+            {/* Tabela de visitantes */}
+            <ScrollView horizontal>
+                <View style={styles.table}>
+                    <View style={styles.tableHeader}>
+                        <Text style={styles.tableHeaderText}>Nome</Text>
+                        <Text style={styles.tableHeaderText}>Ações</Text>
+                    </View>
+                    {currentVisitors.map((visitor) => (
+                        <View key={visitor.id} style={styles.tableRow}>
+                            {/* Nome do visitante */}
+                            <Text style={styles.tableCell}>{visitor.name}</Text>
+
+                            {/* Botões para exibir detalhes e editar */}
+                            <View style={styles.tableCell}>
+                                <TouchableOpacity onPress={() => toggleDetails(visitor.id)}>
+                                    <Text style={styles.showDetailsButton}>
+                                        {expandedVisitorId === visitor.id ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
+                                    </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => editProntuario(visitor.id)}>
+                                    <Text style={styles.editButton}>Editar</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Exibição condicional dos detalhes */}
+                            {expandedVisitorId === visitor.id && (
+                                <View style={styles.detailsContainer}>
+                                    <Text style={styles.blackText}>Idade: {visitor.age}</Text>
+                                    <Text style={styles.blackText}>Quem Registrou: {visitor.registered_by}</Text>
+                                    <Text style={styles.blackText}>Quem Editou: {visitor.edited_by}</Text>
+                                    <Text style={styles.blackText}>Data: {visitor.date}</Text>
+                                    <Text style={styles.blackText}>Horas: {visitor.hours}</Text>
+
+                                    <TouchableOpacity onPress={() => openMapModal(visitor.latitude, visitor.longitude)}>
+                                        <Text style={styles.mapButton}>Abrir no Google Maps</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        </View>
+                    ))}
+                </View>
+            </ScrollView>
+
+            {/* Botões de Paginação */}
+            <View style={styles.paginationContainer}>
+                <TouchableOpacity onPress={handlePreviousPage} disabled={currentPage === 1}>
+                    <Text style={currentPage === 1 ? styles.disabledPaginationButton : styles.paginationButton}>Anterior</Text>
+                </TouchableOpacity>
+                <Text style={styles.pageIndicator}>{currentPage} / {totalPages}</Text>
+                <TouchableOpacity onPress={handleNextPage} disabled={currentPage === totalPages}>
+                    <Text style={currentPage === totalPages ? styles.disabledPaginationButton : styles.paginationButton}>Próximo</Text>
+                </TouchableOpacity>
+            </View>
+
+            <Button title="Voltar" onPress={handleRedirectBack} />
+
+            <FuncoesNFC
+                selectedProntuario={selectedProntuario}
+                navigateToProntuarioScreen={navigateToProntuarioScreen}
+                setLink={setLink}
+                setShowPopup={setShowPopup}
+            />
+
+
+            <Modal visible={modalVisible} transparent={true} animationType="slide">
+                <View style={styles.modalContainer}>
+                    <Text style={styles.modalText}>Deseja abrir o Google Maps?</Text>
+                    <TouchableOpacity onPress={openMap}>
+                        <Text style={styles.mapButton}>Abrir no Google Maps</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setModalVisible(false)}>
+                        <Text style={styles.cancelButton}>Cancelar</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
+        </View>
+    );
+};

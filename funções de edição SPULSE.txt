@@ -1,0 +1,18 @@
+const handleEditProntuario = async (prontuarioId, updatedData) => {
+        const success = await editProntuario(prontuarioId, updatedData);
+        if (success) {
+            loadVisitors();
+        }
+    };
+
+    const handleSelectProntuario = async (prontuarioId) => {
+        const prontuario = await selectProntuario(prontuarioId);
+        if (prontuario) {
+            setVisitorData({
+                name: prontuario.name,
+                gender: prontuario.gender,
+                age: prontuario.age.toString(),
+            });
+            setSelectedProntuario(prontuario);
+        }
+    };

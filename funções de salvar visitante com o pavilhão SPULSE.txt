@@ -1,0 +1,70 @@
+const handleSaveVisitor = async () => {
+        const success = await saveVisitor(visitorData, currentLatitude, currentLongitude, currentUser);
+        if (success) {
+            setVisitorData({ name: '', gender: '', age: '', hours: '' });
+        }
+    };
+
+    const saveVisitor = async () => {
+        if (!contextCurrentUser) {
+            Alert.alert('Erro', 'Você precisa estar logado para salvar um visitante.');
+            return;
+        }
+
+        try {
+            const { data: pavilionData, error: pavilionError } = await supabase
+                .from('checkpoints')
+                .select('pavilion')
+                .eq('user_email', contextCurrentUser)
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+
+            const { data: userData, error: userError } = await supabase
+                .from('usersSpulse')
+                .select('id, name')
+                .eq('email', contextCurrentUser)
+                .single();
+
+            if (pavilionError || !pavilionData) {
+                Alert.alert('Erro', 'Não foi possível encontrar o pavilhão do usuário logado.');
+                console.error('Erro ao encontrar o pavilhão:', pavilionError);
+                return;
+            }
+
+            const { id: user_id, name: userName } = userData;
+            const { pavilion } = pavilionData;
+
+            if (pavilion !== 1) {
+                Alert.alert('Erro', 'Você precisa estar no HALL para salvar um visitante.');
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('visitors')
+                .insert([{
+                    name: visitorData.name,
+                    gender: visitorData.gender,
+                    age: visitorData.age,
+                    hours: new Date().toLocaleTimeString(),
+                    date: new Date().toISOString().split('T')[0],
+                    latitude: currentLatitude,
+                    longitude: currentLongitude,
+                    user_id: user_id,
+                    registered_by: userName
+                }]);
+
+            if (error) {
+                Alert.alert('Erro', 'Não foi possível salvar o registro de visitante');
+                console.error('Erro ao salvar:', error);
+            } else {
+                Alert.alert('Sucesso', 'Visitante salvo com sucesso!');
+                fetchVisitors();
+                setVisitorData({ name: '', gender: '', age: '', hours: '', user_id: '' });
+            }
+        } catch (error) {
+            console.error('Erro ao salvar visitante:', error);
+            Alert.alert('Erro', 'Ocorreu um erro ao tentar salvar o visitante.');
+        }
+    };
+
