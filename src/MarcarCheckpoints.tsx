@@ -16,6 +16,8 @@ const MarcarCheckpoints = () => {
   const [nfcReading, setNfcReading] = useState(false);
   const [pavilion, setPavilion] = useState('');
 
+  const year = new Date().getFullYear();
+
   // Configurações do NFC
   useEffect(() => {
     NfcManager.start();
@@ -56,7 +58,7 @@ const MarcarCheckpoints = () => {
             .from('checkpoints')
             .select('pavilion, date')
             .eq('user_email', email)
-            .order('date', { ascending: false }) // Ordena pela data mais recente
+            .order('created_at', { ascending: false })
             .limit(1)
             .single();
 
@@ -285,6 +287,7 @@ const MarcarCheckpoints = () => {
             </Text>
           )}
         </TouchableOpacity>
+
         {/* Back Button */}
         <TouchableOpacity
             onPress={() => navigation.navigate('PageGeral')}
@@ -347,6 +350,12 @@ const MarcarCheckpoints = () => {
           </View>
         </View>
       </Modal>
+      
+      {/* Versão do App */}
+            <View style={tw`mt-6 items-center`}>
+                <Text style={tw`text-gray-400 text-sm`}>Versão 1.0.0</Text>
+                <Text style={tw`text-gray-400 text-xs`}>© {year} Sistema Spulse</Text>
+            </View>
     </View>
   );
 };

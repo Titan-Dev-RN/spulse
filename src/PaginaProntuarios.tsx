@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, Alert, Linking, ScrollView, Button, PermissionsAndroid, Platform } from 'react-native';
 import { supabase } from '../services/supabase';
-import { editProntuario, selectProntuario } from './EditarProntuarios';
+import { editProntuario } from './EditarProntuarios';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import FuncoesNFC from './FuncoesNFC'; // Importando o componente NFC
 import tw from 'tailwind-react-native-classnames';
@@ -9,6 +9,7 @@ import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 import { fetchVisitors } from './EditarProntuarios';
 import Icon from 'react-native-vector-icons/Ionicons'; // Importando Ionicons
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUserContext } from './UserContext';
 
 
 
@@ -34,23 +35,31 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
     const [nfcReading, setNfcReading] = useState(false); // Estado de leitura do NFC
 
     const [userPavilion, setUserPavilion] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [currentUserName, setCurrentUserName] = useState(null); // Estado para o nome do usuário
+    
+    
+    const [isAdmin, setIsAdmin] = useState(false);
 
-    //const { logoutUser } = useContext(UserContext);
+    const { logoutUser } = useUserContext();
 
 
     useEffect(() => {
         const loadData = async () => {
-            callLocation();
-            await fetchVisitors();
-            await loadVisitors();
-            
-            // Busca o pavilhão primeiro e armazena no estado
-            const pavilion = await fetchUserPavilion();
-            setUserPavilion(pavilion);
-            console.log('Pavilhão definido:', pavilion);
-            
-            await fetchCurrentUser();
-            setLoading(false);
+            try {
+                setLoading(true);
+                callLocation();
+                await fetchVisitors();
+                await loadVisitors();
+                
+                                  
+                await fetchCurrentUser();
+                
+            } catch (error) {
+                console.error('Erro no loadData:', error);
+            } finally {
+                setLoading(false);
+            }
         };
     
         loadData();
@@ -86,6 +95,24 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         }
     }, [isFocused]);
      
+    /*
+    const debugUserData = async () => {
+        try {
+            const email = await AsyncStorage.getItem('currentUser');
+            if (!email) return;
+
+            const { data, error } = await supabase
+                .from('usersSpulse')
+                .select('*')
+                .eq('email', email)
+
+            console.log('Dados completos do usuário:', data);
+            console.log('Tipo do campo admin:', typeof data?.admin);
+        } catch (error) {
+            console.error('Erro no debug:', error);
+        }
+    };
+    */
 
     const readTag = async () => {
         try {
@@ -178,6 +205,47 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         }
     };
 
+    const fetchCurrentUser = async () => {
+        try {
+            const email = await AsyncStorage.getItem('currentUser');
+            if (email) {
+                setCurrentUser(email);
+                // Buscar o nome do usuário a partir do email
+                const { data, error } = await supabase
+                    .from('usersSpulse') // Supondo que sua tabela de usuários se chama 'users'
+                    .select('name')
+                    .eq('email', email)
+
+                if (error) {
+                    console.warn('Erro ao buscar o nome do usuário:', error);
+                } else {
+                    setCurrentUserName(data?.name);
+                }
+            } else {
+                console.warn('Nenhum usuário logado encontrado.');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar usuário atual:', error);
+        }
+    };
+
+    
+    // Adicione este useEffect para monitorar mudanças no estado de admin
+    useEffect(() => {
+        // DEBUG: Ver todos os dados do usuário
+        const tests = async () => {
+            //await debugUserData();
+
+            // Busca o pavilhão
+            const pavilion = await fetchUserPavilion();
+            setUserPavilion(pavilion);
+
+        }
+        
+        tests();
+        //console.log('Status de admin atualizado:', isAdmin);
+    }, [isAdmin]);
+
     const fetchUserPavilion = async () => {
         try {
             const email = await AsyncStorage.getItem('currentUser');
@@ -190,7 +258,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                 .from('checkpoints')
                 .select('pavilion')
                 .eq('user_email', email)
-                .order('created_at', { ascending: true })
+                .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
@@ -310,11 +378,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         navigation.navigate('MarcarCheckpoints'); // Redireciona para a página MarcarCheckpoints
     };
 
-    const makeLogout = async () => {
-        //await logoutUser();
-        navigation.navigate('Login');
-    }
-    
+
     const selectProntuario = async (prontuario) => {
         // Mostra um indicador de carregamento, se necessário
         setLoading(true);
@@ -395,34 +459,24 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
             </View>
 
             {/* Checkpoints Button */}
-            <TouchableOpacity 
-                onPress={() => navigation.navigate('MarcarCheckpoints')}
-                style={tw`bg-blue-600 flex-row items-center rounded-xl p-4 mb-2 shadow-md`}
-            >
-                <Icon name="checkmark-circle" size={24} color="white" style={tw`mr-3`} />
-                <View>
-                    <Text style={tw`text-lg font-bold text-white`}>Checkpoints</Text>
-                    <Text style={tw`text-white opacity-90`}>Registrar passagens pelos blocos.</Text>
-                </View>
-                <Icon name="chevron-forward" size={20} color="white" style={tw`ml-auto`} />
-            </TouchableOpacity>
 
-
-
-            {/* Botão "Novo Visitante" só aparece se algum checkpoint.pavilion === 1 */}
-             {/* {userPavilion === '1' && ( */}
+            {userPavilion && (
+                userPavilion.toString() !== '1' || 
+                userPavilion !== 1 || 
+                userPavilion !== '1'
+            ) && (
                 <TouchableOpacity 
-                    onPress={() => navigation.navigate('RegistrarVisitante')}
-                    style={tw`bg-green-600 flex-row items-center rounded-xl p-4 mb-6 shadow-md`}
+                    onPress={() => navigation.navigate('MarcarCheckpoints')}
+                    style={tw`bg-blue-600 flex-row items-center rounded-xl p-4 mb-2 shadow-md`}
                 >
                     <Icon name="checkmark-circle" size={24} color="white" style={tw`mr-3`} />
                     <View>
-                        <Text style={tw`text-lg font-bold text-white`}>Novo Visitante</Text>
-                        <Text style={tw`text-white opacity-90`}>Clique para registrar um novo visitante.</Text>
+                        <Text style={tw`text-lg font-bold text-white`}>Checkpoints</Text>
+                        <Text style={tw`text-white opacity-90`}>Registrar passagens pelos blocos.</Text>
                     </View>
                     <Icon name="chevron-forward" size={20} color="white" style={tw`ml-auto`} />
                 </TouchableOpacity>
-            {/*)} */}
+            )}
 
             {/* Visitors Table */}
             <View style={tw`flex-1 mb-6 bg-white rounded-xl shadow-md overflow-hidden`}>
@@ -618,6 +672,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                     </TouchableOpacity>
                 </View>
             </View>
+            
 
             {/* NFC Modals */}
             <Modal visible={nfcReading || nfcWriting} transparent={true} animationType="fade">
@@ -640,6 +695,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                     </View>
                 </View>
             </Modal>
+
             {/* Modal do Mapa */}
             <Modal visible={mapModalVisible} transparent={true} animationType="slide">
                 <View style={tw`flex-1 justify-center items-center bg-black bg-opacity-50`}>
@@ -665,14 +721,18 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                 </View>
             </Modal>
 
-            <View style={tw`rounded-lg my-4`}>
-                <TouchableOpacity
-                //onPress={() => makeLogout()}
-                style={tw`bg-red-600 rounded-lg p-3 items-center`}
+            
+
+            <View style={tw`rounded-lg mt-4`}>
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('OutrasFuncoes')}
+                    style={tw`bg-blue-600 rounded-lg p-3 items-center`}
                 >
-                    <Text style={tw`text-white font-medium`}>Logout</Text>
+                    <Text style={tw`text-white font-bold`}>Outras funções</Text>
                 </TouchableOpacity>
             </View>
+            
+
         </View>
     );
 };     

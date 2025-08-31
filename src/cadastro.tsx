@@ -187,13 +187,14 @@ const CadastroSpulse = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Link para Login */}
-                <View style={tw`flex-row justify-center`}>
-                    <Text style={tw`text-gray-600`}>Já tem uma conta? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={tw`text-blue-600 font-medium`}>Faça login</Text>
-                    </TouchableOpacity>
-                </View>
+                {/* Back Button */}
+                <TouchableOpacity
+                    onPress={() => navigation.navigate('PageGeral')}
+                    style={tw`mt-4 bg-gray-200 rounded-lg p-4`}
+                >
+                    <Text style={tw`text-gray-800 font-medium text-center`}>Voltar</Text>
+                </TouchableOpacity>
+
             </View>
         </ScrollView>
     );

@@ -14,6 +14,8 @@ const Login = () => {
     const { loginUser } = useUserContext(); // Usar o loginUser do contexto
     const [loading, setLoading] = useState(false);
 
+    const year = new Date().getFullYear();
+
     const handleLogin = async () => {
         setLoading(true);
         if (email && password) {
@@ -85,13 +87,12 @@ const Login = () => {
                 )}
             </TouchableOpacity>
 
-            {/* Link para Registro */}
-            <View style={tw`flex-row justify-center`}>
-                <Text style={tw`text-black`}>Não tem uma conta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
-                    <Text style={tw`text-blue-500 font-bold`}>Registre-se aqui</Text>
-                </TouchableOpacity>
+            {/* Versão do App */}
+            <View style={tw`mt-6 items-center`}>
+                <Text style={tw`text-gray-400 text-sm`}>Versão 1.0.0</Text>
+                <Text style={tw`text-gray-400 text-xs`}>© {year} Sistema Spulse</Text>
             </View>
+            
         </View>
     );
 };

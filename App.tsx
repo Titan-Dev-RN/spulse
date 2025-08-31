@@ -15,6 +15,8 @@ import { UserProvider } from './src/UserContext';
 import PageGeral from './src/PaginaProntuarios';
 import RegistrarVisitante from './src/RegistrarVisitante';
 import MarcarCheckpoints from './src/MarcarCheckpoints';
+import ControladorDashboard from './src/ControladorDashboard';
+import OutrasFuncoes from './src/OutrasFuncoes';
 
 const Stack = createNativeStackNavigator();
 
@@ -60,6 +62,17 @@ const App = () => {
                     <Stack.Screen 
                         name="MarcarCheckpoints" 
                         component={MarcarCheckpoints} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+                    <Stack.Screen 
+                        name="ControladorDashboard" 
+                        component={ControladorDashboard} 
+                        options={{ headerShown: false }} // Oculta o cabeçalho
+                    />
+
+                    <Stack.Screen 
+                        name="OutrasFuncoes" 
+                        component={OutrasFuncoes} 
                         options={{ headerShown: false }} // Oculta o cabeçalho
                     />
 

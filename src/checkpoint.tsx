@@ -29,6 +29,8 @@ const CheckPoint = () => {
     const navigation = useNavigation(); 
     const { loginUser } = useUserContext(); // Usar o loginUser do contexto
 
+    const year = new Date().getFullYear();
+
 
     const { currentLatitude, currentLongitude } = useLocation(); // Use o hook para obter as coordenadas
 
@@ -139,13 +141,12 @@ const CheckPoint = () => {
                 <Text style={tw`text-white text-center font-bold text-lg`}>Salvar Registro</Text>
             </TouchableOpacity>
 
-            {/* Link para Registro */}
-            <View style={tw`flex-row justify-center`}>
-                <Text style={tw`text-gray-700`}>Não tem uma conta? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Cadastro')}>
-                    <Text style={tw`text-blue-600 font-bold`}>Registre-se aqui</Text>
-                </TouchableOpacity>
+            {/* Versão do App */}
+            <View style={tw`mt-6 items-center`}>
+                <Text style={tw`text-gray-400 text-sm`}>Versão 1.0.0</Text>
+                <Text style={tw`text-gray-400 text-xs`}>© {year} Sistema Spulse</Text>
             </View>
+        
         </View>
     );
 };
