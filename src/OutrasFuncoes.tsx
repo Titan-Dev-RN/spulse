@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
@@ -10,7 +10,10 @@ import tw from 'tailwind-react-native-classnames';
 const OutrasFuncoes = () => {
     const navigation = useNavigation();
     const { logoutUser, currentUser } = useUserContext();
-    const [isAdmin, setIsAdmin] = React.useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [userPavilion, setUserPavilion] = useState(null);
+    const [loading, setLoading] = useState(true);
+
 
     const year = new Date().getFullYear();
 
@@ -52,6 +55,7 @@ const OutrasFuncoes = () => {
         }
     };
 
+    /*
     useEffect(() => {
         const loadAdminStatus = async () => {
             // Verifica se é admin
@@ -59,6 +63,35 @@ const OutrasFuncoes = () => {
             setIsAdmin(adminStatus);
         };
         loadAdminStatus();
+    }, []);
+    */
+
+    const loadUserData = async () => {
+        try {
+            setLoading(true);
+            const email = await AsyncStorage.getItem('currentUser');
+            
+            if (email) {
+                // Verifica se é admin
+                const adminStatus = await checkIfUserIsAdmin();
+                setIsAdmin(adminStatus);
+                
+                // Busca o pavilhão do usuário
+                const pavilion = await fetchUserPavilion(email);
+                setUserPavilion(pavilion);
+                
+                console.log('Pavilhão do usuário:', pavilion);
+                
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados do usuário:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadUserData();
     }, []);
 
     const makeLogout = async () => {
@@ -80,15 +113,53 @@ const OutrasFuncoes = () => {
         navigation.navigate('Cadastro');
     };
 
+    const fetchUserPavilion = async (email) => {
+        if (!email) return null;
+        
+        try {
+            const { data } = await supabase
+                .from('checkpoints')
+                .select('pavilion')
+                .eq('user_email', email)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            return data?.pavilion || null;
+        } catch (error) {
+            console.error('Erro ao buscar pavilhão:', error);
+            return null;
+        }
+    };
+
     return (
         <View style={tw`flex-1 bg-gray-50 p-6`}>
             {/* Header */}
             <View style={tw`mb-8`}>
                 <Text style={tw`text-2xl font-bold text-gray-800 text-center`}>Outras Funções</Text>
-                <Text style={tw`text-gray-500 text-center mt-2`}>
-                    <Text style={tw`font-bold`}>Usuário: </Text>
-                    {currentUser || 'Usuário'}
-                </Text>
+                {/* Informações do usuário */}
+                <View style={tw`mt-4 bg-white rounded-lg p-4 shadow-sm`}>
+                    <Text style={tw`text-gray-700 mb-2`}>
+                        <Text style={tw`font-bold`}>Usuário: </Text>
+                        {currentUser || 'Usuário'}
+                    </Text>
+                    
+                    {userPavilion && (
+                        <Text style={tw`text-gray-700 mb-2`}>
+                            <Text style={tw`font-bold`}>Pavilhão: </Text>
+                            {userPavilion}
+                            {userPavilion === '1' && (
+                                <Text style={tw`text-green-600 ml-2`}>• Acesso especial</Text>
+                            )}
+                        </Text>
+                    )}
+                    
+                    {isAdmin && (
+                        <Text style={tw`text-blue-600 font-bold`}>
+                            <Icon name="shield-checkmark" size={16} /> Administrador
+                        </Text>
+                    )}
+                </View>
             </View>
 
             {/* Botões de Navegação */}
@@ -120,6 +191,20 @@ const OutrasFuncoes = () => {
                             <Text style={tw`text-white opacity-90 text-sm`}>
                                 Registrar novo controlador
                             </Text>
+                        </View>
+                        <Icon name="chevron-forward" size={20} color="white" />
+                    </TouchableOpacity>
+                )}
+
+                {userPavilion && userPavilion.toString() === '1' && (
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate('RegistrarVisitante')}
+                        style={tw`bg-green-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                    >
+                        <Icon name="person-add" size={24} color="white" style={tw`mr-3`} />
+                        <View style={tw`flex-1`}>
+                            <Text style={tw`text-lg font-bold text-white`}>Novo Visitante</Text>
+                            <Text style={tw`text-white opacity-90 text-sm`}>Cadastrar novo visitante</Text>
                         </View>
                         <Icon name="chevron-forward" size={20} color="white" />
                     </TouchableOpacity>
