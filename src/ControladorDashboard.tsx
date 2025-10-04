@@ -5,7 +5,7 @@ import { supabase } from '../services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import tw from 'tailwind-react-native-classnames';
-import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 
 const ControladorDashboard = () => {
     const navigation = useNavigation();
@@ -19,7 +19,7 @@ const ControladorDashboard = () => {
     });
     const [userEmail, setUserEmail] = useState('');
     const [userName, setUserName] = useState('');
-    const [visitorsData, setVisitorsData] = useState([]);
+    const [visitorsLast7Days, setVisitorsLast7Days] = useState([]);
     const [checkpointsByPavilion, setCheckpointsByPavilion] = useState([]);
 
     useEffect(() => {
@@ -30,29 +30,36 @@ const ControladorDashboard = () => {
         try {
             setLoading(true);
             const email = await AsyncStorage.getItem('currentUser');
-            setUserEmail(email || '');
+            if (!email) return;
+            setUserEmail(email);
 
-            // Buscar dados em paralelo
-            const [visitorsData, pavilionData, adminData, checkpointsData, visitorsChartData, pavilionStats] = await Promise.all([
+            const isAdmin = await checkIfUserIsAdmin(email);
+            const [visitorStats, currentPavilion, recentCheckpoints, last7DaysData, pavilionStats] = await Promise.all([
                 fetchVisitorsStats(),
-                fetchUserPavilion(email),
-                checkIfUserIsAdmin(email),
+                isAdmin ? null : fetchUserPavilion(email),
                 fetchRecentCheckpoints(),
                 fetchVisitorsLast7Days(),
-                fetchCheckpointsByPavilion()
+                fetchCheckpointsByPavilion(),
             ]);
 
             setStats({
-                totalVisitors: visitorsData.total,
-                todayVisitors: visitorsData.today,
-                currentPavilion: pavilionData,
-                recentCheckpoints: checkpointsData,
-                admin: adminData
+                totalVisitors: visitorStats.total,
+                todayVisitors: visitorStats.today,
+                currentPavilion,
+                recentCheckpoints,
+                admin: isAdmin,
             });
 
-            setVisitorsData(visitorsChartData);
+            setVisitorsLast7Days(last7DaysData);
             setCheckpointsByPavilion(pavilionStats);
 
+            // Buscar nome do usuário
+            const { data: userData } = await supabase
+                .from('usersSpulse')
+                .select('name')
+                .eq('email', email)
+                .single();
+            setUserName(userData?.name || '');
         } catch (error) {
             console.error('Erro ao carregar dashboard:', error);
             Alert.alert('Erro', 'Não foi possível carregar os dados do dashboard');
@@ -76,7 +83,7 @@ const ControladorDashboard = () => {
                 const { count } = await supabase
                     .from('visitors')
                     .select('*', { count: 'exact' })
-                    .eq('date', date);
+                    .eq('created_at', date);
                 
                 visitorsByDay.push(count || 0);
             }
@@ -90,26 +97,31 @@ const ControladorDashboard = () => {
 
     const fetchCheckpointsByPavilion = async () => {
         try {
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
             const { data, error } = await supabase
-                .from('checkpoints')
-                .select('pavilion')
-                .gte('created_at', new Date(new Date().setDate(new Date().getDate() - 7)).toISOString());
+                .from('agent_checkpoints')
+                .select('pavilion_id (name)')
+                .gte('created_at', sevenDaysAgo.toISOString());
 
             if (error) throw error;
 
-            // Agrupar por pavilhão
             const counts = {};
             data.forEach(item => {
-                counts[item.pavilion] = (counts[item.pavilion] || 0) + 1;
+                const name = item.pavilion_id?.name || 'Desconhecido';
+                counts[name] = (counts[name] || 0) + 1;
             });
 
-            // Converter para formato adequado para o gráfico de pizza
-            return Object.keys(counts).map(key => ({
-                name: `Pav. ${key}`,
+            // Gerar cores consistentes
+            const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'];
+            
+            return Object.keys(counts).map((key, index) => ({
+                name: key,
                 count: counts[key],
-                color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
+                color: colors[index % colors.length],
                 legendFontColor: '#7F7F7F',
-                legendFontSize: 12
+                legendFontSize: 12,
             }));
         } catch (error) {
             console.error('Erro ao buscar checkpoints por pavilhão:', error);
@@ -120,18 +132,22 @@ const ControladorDashboard = () => {
     const fetchVisitorsStats = async () => {
         try {
             // Total de visitantes
-            const { count: total } = await supabase
+            const { count: total, error: totalError } = await supabase
                 .from('visitors')
                 .select('*', { count: 'exact' });
 
+            if (totalError) throw totalError;
+
             // Visitantes de hoje
             const today = new Date().toISOString().split('T')[0];
-            const { count: todayCount } = await supabase
+            const { count: todayCount, error: todayError } = await supabase
                 .from('visitors')
                 .select('*', { count: 'exact' })
-                .eq('date', today);
+                .eq('created_at', today);
 
-            return { total, today: todayCount };
+            if (todayError) throw todayError;
+
+            return { total: total || 0, today: todayCount || 0 };
         } catch (error) {
             console.error('Erro ao buscar estatísticas de visitantes:', error);
             return { total: 0, today: 0 };
@@ -139,18 +155,17 @@ const ControladorDashboard = () => {
     };
 
     const fetchUserPavilion = async (email) => {
-        if (!email) return null;
-        
         try {
-            const { data } = await supabase
-                .from('checkpoints')
-                .select('pavilion')
+            const { data, error } = await supabase
+                .from('agent_checkpoints')
+                .select('pavilion_id (name)')
                 .eq('user_email', email)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
 
-            return data?.pavilion || null;
+            if (error) throw error;
+            return data?.pavilion_id?.name || null;
         } catch (error) {
             console.error('Erro ao buscar pavilhão:', error);
             return null;
@@ -161,12 +176,13 @@ const ControladorDashboard = () => {
         if (!email) return false;
         
         try {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('usersSpulse')
                 .select('admin')
                 .eq('email', email)
                 .single();
 
+            if (error) throw error;
             return data?.admin === true || data?.admin === 'true';
         } catch (error) {
             console.error('Erro ao verificar admin:', error);
@@ -176,21 +192,19 @@ const ControladorDashboard = () => {
 
     const fetchRecentCheckpoints = async () => {
         try {
-            const today = new Date();
-            const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-            
-            const { count } = await supabase
-                .from('checkpoints_visitors')
+            const today = new Date().toISOString().split('T')[0];
+            const { count, error } = await supabase
+                .from('agent_checkpoints')
                 .select('*', { count: 'exact' })
-                .gte('time', startOfDay);
+                .eq('date', today);
 
+            if (error) throw error;
             return count || 0;
         } catch (error) {
             console.error('Erro ao buscar checkpoints recentes:', error);
             return 0;
         }
     };
-
 
     if (loading) {
         return (
@@ -207,19 +221,30 @@ const ControladorDashboard = () => {
             <View style={tw`bg-white p-6 shadow-sm`}>
                 <View style={tw`flex-row justify-between items-center`}>
                     <View>
-                        <Text style={tw`text-2xl font-bold text-gray-800`}>Dashboard do Controlador</Text>
-                        <Text style={tw`text-gray-500`}>Bem-vindo, {userEmail}</Text>
+                        <Text style={tw`text-2xl font-bold text-gray-800`}>
+                            {stats.admin ? 'Dashboard do Administrador' : 'Dashboard do Controlador'}
+                        </Text>
+                        <Text style={tw`text-gray-500`}>Bem-vindo, {userName || userEmail}</Text>
                     </View>
                     <TouchableOpacity onPress={loadDashboardData}>
                         <Icon name="refresh" size={24} color="#3B82F6" />
                     </TouchableOpacity>
                 </View>
                 
-                {stats.currentPavilion && (
+                {!stats.admin && stats.currentPavilion && (
                     <View style={tw`mt-3 flex-row items-center bg-blue-50 p-3 rounded-lg`}>
                         <Icon name="business" size={20} color="#3B82F6" />
                         <Text style={tw`ml-2 text-blue-700`}>
                             Pavilhão atual: {stats.currentPavilion}
+                        </Text>
+                    </View>
+                )}
+                
+                {stats.admin && (
+                    <View style={tw`mt-3 flex-row items-center bg-purple-50 p-3 rounded-lg`}>
+                        <Icon name="shield" size={20} color="#8B5CF6" />
+                        <Text style={tw`ml-2 text-purple-700`}>
+                            Modo Administrador - Acesso completo ao sistema
                         </Text>
                     </View>
                 )}
@@ -283,7 +308,7 @@ const ControladorDashboard = () => {
                                 labels: ['6d', '5d', '4d', '3d', '2d', 'Ontem', 'Hoje'],
                                 datasets: [
                                     {
-                                        data: visitorsData,
+                                        data: visitorsLast7Days,
                                     },
                                 ],
                             }}
@@ -365,8 +390,21 @@ const ControladorDashboard = () => {
                             <Icon name="chevron-forward" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
 
+                        {/* Controlar Agendamentos */}
+                        <TouchableOpacity 
+                            onPress={() => navigation.navigate('VisitasAgendadas')}
+                            style={tw`bg-white rounded-xl p-4 shadow-sm flex-row items-center my-1`}
+                        >
+                            <Icon name="calendar-outline" size={24} color="#6366F1" style={tw`mr-3`} />
+                            <View style={tw`flex-1`}>
+                                <Text style={tw`font-medium text-gray-800`}>Controlar Agendamentos</Text>
+                                <Text style={tw`text-sm text-gray-500`}>Gerencie os Agendamentos dos Visitantes</Text>
+                            </View>
+                            <Icon name="chevron-forward" size={20} color="#9CA3AF" />
+                        </TouchableOpacity>
+
                         {/* Novo Visitante */}
-                        {stats.currentPavilion?.toString() === '1' && (
+                        {(stats.admin || stats.currentPavilion?.toString() === '1') && (
                             <TouchableOpacity 
                                 onPress={() => navigation.navigate('RegistrarVisitante')}
                                 style={tw`bg-white rounded-xl p-4 shadow-sm flex-row items-center my-1`}
@@ -394,6 +432,18 @@ const ControladorDashboard = () => {
                                 <Icon name="chevron-forward" size={20} color="#9CA3AF" />
                             </TouchableOpacity>
                         )}
+
+                        <TouchableOpacity 
+                            onPress={() => navigation.navigate('Agendamento')}
+                            style={tw`bg-white rounded-xl p-4 shadow-sm flex-row items-center my-1`}
+                        >
+                            <Icon name="person-add" size={24} color="#F59E0B" style={tw`mr-3`} />
+                            <View style={tw`flex-1`}>
+                                <Text style={tw`font-medium text-gray-800`}>Agendar Visitas</Text>
+                                <Text style={tw`text-sm text-gray-500`}>Programar as visitas dos Visitantes</Text>
+                            </View>
+                            <Icon name="chevron-forward" size={20} color="#9CA3AF" />
+                        </TouchableOpacity>
 
                         {/* NFC Management */}
                         <TouchableOpacity 
@@ -442,7 +492,7 @@ const ControladorDashboard = () => {
             {/* Back Button */}
             <TouchableOpacity
                 onPress={() => navigation.navigate('PageGeral')}
-                style={tw`mt-4 bg-gray-300 rounded-lg p-4`}
+                style={tw`m-4 bg-gray-300 rounded-lg p-4`}
             >
                 <Text style={tw`text-gray-800 font-medium text-center`}>Voltar</Text>
             </TouchableOpacity>

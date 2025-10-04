@@ -18,37 +18,47 @@ const Login = () => {
 
     const handleLogin = async () => {
         setLoading(true);
+
         if (email && password) {
-            // Verifica se o email existe
-            const { data: emailData, error: emailError } = await supabase
+            try {
+            // Verifica se o usuário existe com email e senha
+            const { data: userData, error } = await supabase
                 .from('usersSpulse')
-                .select('*')
-                .eq('email', email);
-    
-            if (emailError || !emailData || emailData.length === 0) {
-                Alert.alert('Erro', 'Email não encontrado');
-            } else {
-                // Verifica se a senha corresponde ao email fornecido
-                const { data: senhaData, error: senhaError } = await supabase
-                    .from('usersSpulse')
-                    .select('*')
-                    .eq('email', email)
-                    .eq('senha', password); // Mudança para "senha"
-    
-                if (senhaError || !senhaData || senhaData.length === 0) {
-                    Alert.alert('Erro', 'Senha incorreta');
-                } else {
-                    Alert.alert('Sucesso', 'Login realizado com sucesso!');
-                    await loginUser(email); // Armazena o usuário no contexto
-                    navigation.navigate('CheckPoint'); // Redireciona para a tela de checkpoint
-                }
+                .select('email, senha, admin') // já pega o campo admin
+                .eq('email', email)
+                .eq('senha', password)
+                .single();
+
+            if (error || !userData) {
+                Alert.alert('Erro', 'Email ou senha incorretos');
+                setLoading(false);
+                return;
             }
+
+            // Login realizado com sucesso
+            Alert.alert('Sucesso', 'Login realizado com sucesso!');
+            await loginUser(email); // Armazena o usuário no contexto ou AsyncStorage
+
+            if (userData.admin === true || userData.admin === 'true') {
+                // Se for admin, vai para PageGeral
+                navigation.navigate('PageGeral');
+            } else {
+                // Se não for admin, vai para CheckPoint
+                navigation.navigate('CheckPoint');
+            }
+
+            } catch (err) {
+            console.error('Erro no login:', err);
+            Alert.alert('Erro', 'Não foi possível realizar o login');
+            } finally {
             setLoading(false);
+            }
         } else {
             Alert.alert('Erro', 'Por favor, preencha todos os campos.');
             setLoading(false);
         }
     };
+
 
     return (
         <View style={tw`flex-1 bg-gray-100 justify-center p-6`}>

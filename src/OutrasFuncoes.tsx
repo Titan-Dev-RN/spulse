@@ -109,6 +109,10 @@ const OutrasFuncoes = () => {
         navigation.navigate('ControladorDashboard');
     };
 
+    const navigateToAdminPainel = () => {
+        navigation.navigate('AdminPainel');
+    };
+
     const navigateToCadastro = () => {
         navigation.navigate('Cadastro');
     };
@@ -163,7 +167,7 @@ const OutrasFuncoes = () => {
             </View>
 
             {/* Botões de Navegação */}
-            <View style={tw`space-y-4 mb-8`}>
+            <View style={tw`mb-8`}>
                 {/* Dashboard */}
                 <TouchableOpacity 
                     onPress={navigateToDashboard}
@@ -196,6 +200,23 @@ const OutrasFuncoes = () => {
                     </TouchableOpacity>
                 )}
 
+                {/* Cadastro de Pavilhões e Rotas de Checkpoints (apenas admin) */}
+                {isAdmin && (
+                    <TouchableOpacity 
+                        onPress={navigateToAdminPainel}
+                        style={tw`bg-black flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                    >
+                        <Icon name="business" size={24} color="white" style={tw`mr-4`} />
+                        <View style={tw`flex-1`}>
+                            <Text style={tw`text-lg font-bold text-white`}>Cadastrar Pavilhões</Text>
+                            <Text style={tw`text-white opacity-90 text-sm`}>
+                                Registrar novos pavilhões e rotas
+                            </Text>
+                        </View>
+                        <Icon name="chevron-forward" size={20} color="white" />
+                    </TouchableOpacity>
+                )}
+
                 {userPavilion && userPavilion.toString() === '1' && (
                     <TouchableOpacity 
                         onPress={() => navigation.navigate('RegistrarVisitante')}
@@ -209,6 +230,22 @@ const OutrasFuncoes = () => {
                         <Icon name="chevron-forward" size={20} color="white" />
                     </TouchableOpacity>
                 )}
+
+
+                {/* Ajuda (exemplo) */}
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('Agendamento')}
+                    style={tw`bg-pink-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                >
+                    <Icon name="help-circle" size={24} color="white" style={tw`mr-4`} />
+                    <View style={tw`flex-1`}>
+                        <Text style={tw`text-lg font-bold text-white`}>Agendamento de visitantes</Text>
+                        <Text style={tw`text-white opacity-90 text-sm`}>
+                            Faça o agendamento de uma visita
+                        </Text>
+                    </View>
+                    <Icon name="chevron-forward" size={20} color="white" />
+                </TouchableOpacity>
 
                 {/* Ajuda (exemplo) */}
                 <TouchableOpacity 

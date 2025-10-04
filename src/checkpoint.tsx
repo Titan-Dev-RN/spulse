@@ -1,155 +1,156 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../services/supabase'; // Importando o cliente Supabase
-import { useUserContext } from './UserContext'; // Importando o contexto de usuário
-import useLocation from './localizacao';
+import { supabase } from '../services/supabase';
 import tw from 'tailwind-react-native-classnames';
-
+import useLocation from './localizacao';
 
 const CheckPoint = () => {
+  const navigation = useNavigation();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUserName, setCurrentUserName] = useState(null);
+  const [userId, setUserId] = useState(null);
 
-    const formatTime = (date) => {
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const seconds = date.getSeconds().toString().padStart(2, '0');
-        return `${hours}:${minutes}:${seconds}`;
-    };
-
-    const [visitorData, setVisitorData] = useState({
-        pavilion: '',
-        hours: formatTime(new Date()),
-        date: new Date().toISOString().split('T')[0],
-    });
-
-    const [currentUser, setCurrentUser] = useState(null);
-    const [currentUserName, setCurrentUserName] = useState(null); // Estado para o nome do usuário
-
-    const navigation = useNavigation(); 
-    const { loginUser } = useUserContext(); // Usar o loginUser do contexto
-
-    const year = new Date().getFullYear();
+  const [pavilions, setPavilions] = useState([]);
+  const [selectedPavilion, setSelectedPavilion] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const { currentLatitude, currentLongitude } = useLocation();
 
 
-    const { currentLatitude, currentLongitude } = useLocation(); // Use o hook para obter as coordenadas
+  const year = new Date().getFullYear();
 
-
-
-    useEffect(() => {
-        const loadData = async () => {
-            await fetchCurrentUser();
-        };
-        loadData();
-    }, []);
-    
+  // Busca usuário logado
+  useEffect(() => {
     const fetchCurrentUser = async () => {
-        try {
-            const email = await AsyncStorage.getItem('currentUser');
-            if (email) {
-                setCurrentUser(email);
-                // Buscar o nome do usuário a partir do email
-                const { data, error } = await supabase
-                    .from('usersSpulse') // Supondo que sua tabela de usuários se chama 'users'
-                    .select('name')
-                    .eq('email', email)
-                    .single(); // Para garantir que retorna apenas um usuário
-    
-                if (error) {
-                    console.warn('Erro ao buscar o nome do usuário:', error);
-                } else {
-                    setCurrentUserName(data?.name);
-                }
-            } else {
-                console.warn('Nenhum usuário logado encontrado.');
-            }
-        } catch (error) {
-            console.error('Erro ao buscar usuário atual:', error);
+      try {
+        const email = await AsyncStorage.getItem('currentUser');
+        if (!email) return;
+
+        setCurrentUser(email);
+
+        const { data, error } = await supabase
+          .from('usersSpulse')
+          .select('id, name')
+          .eq('email', email)
+          .single();
+
+        if (error || !data) {
+          console.warn('Erro ao buscar usuário:', error);
+          return;
         }
+
+        setCurrentUserName(data.name);
+        setUserId(data.id);
+      } catch (error) {
+        console.error('Erro ao buscar usuário atual:', error);
+      }
     };
 
-    const handleInputChange = (field, value) => {
-        setVisitorData({ ...visitorData, [field]: value });
-    };
+    fetchCurrentUser();
+    fetchPavilions();
+  }, []);
 
-    const handleSaveVisitor = async () => {
-        if (visitorData.pavilion) {
-            const { data, error } = await supabase
-                .from('checkpoints')
-                .insert([{
-                    user_email: currentUser,
-                    pavilion: visitorData.pavilion,
-                    hours: visitorData.hours,
-                    date: visitorData.date,
-                    latitude: currentLatitude,
-                    longitude: currentLongitude,
-                }]);
+  // Busca lista de pavilhões
+  const fetchPavilions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pavilions')
+        .select('*');
+      if (error) throw error;
+      setPavilions(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar pavilhões:', error);
+      Alert.alert('Erro', 'Não foi possível carregar a lista de pavilhões');
+    }
+  };
 
-            if (error) {
-                Alert.alert('Erro', 'Não foi possível salvar o registro de visitante');
-                console.error('Erro ao salvar:', error);
-            } else {
-                Alert.alert('Sucesso', 'Posição salva com sucesso!');
-                // Lógica de redirecionamento com base no pavilhão
-                if (visitorData.pavilion === '1') {
-                    navigation.navigate('PageGeral'); // Redireciona para PageGeral
-                } else {
-                    navigation.navigate('PageGeral'); // Redireciona para RegistrarVisitantes
-                }            
-            }
-        } else {
-            Alert.alert('Erro', 'Por favor, preencha o campo de pavilhão.');
-        }
-    };
+  // Salvar checkpoint
+  const handleSaveCheckpoint = async () => {
+    if (!selectedPavilion) {
+      Alert.alert('Erro', 'Selecione um pavilhão antes de registrar o checkpoint.');
+      return;
+    }
 
-    return (
-        <View style={tw`flex-1 bg-gray-100 p-6`}>
-            {/* Título */}
-            <Text style={tw`text-3xl font-extrabold text-center text-blue-600 mb-10`}>
-                Checkpoint do Controlador
-            </Text>
+    try {
+      setLoading(true);
 
-            {/* Informação do Usuário Logado */}
-            {currentUser && (
-                <View style={tw`bg-gray-100 rounded-lg p-4 mb-6 shadow`}>
-                    <Text style={tw`text-base text-gray-700`}>
-                        Usuário Logado: <Text style={tw`font-bold text-black`}>{currentUserName}</Text>
-                    </Text>
-                    <Text style={tw`text-black`}>
-                        Email: <Text style={tw`font-bold text-black`}>{currentUser}</Text>
-                    </Text>
-                </View>
-            )}
+      const date = new Date().toISOString().split('T')[0]; // apenas data
+      const time = new Date().toLocaleTimeString('pt-BR', { hour12: false });
 
-            {/* Campo Pavilhão */}
-            <View style={tw`mb-6`}>
-                <Text style={tw`text-lg font-semibold text-gray-700 mb-2`}>Pavilhão</Text>
-                <TextInput
-                    style={tw`border border-gray-300 bg-white rounded-lg px-4 py-3 text-black shadow`}
-                    placeholder="Digite o pavilhão"
-                    placeholderTextColor="#888888"
-                    value={visitorData.pavilion}
-                    onChangeText={(text) => handleInputChange('pavilion', text)}
-                />
-            </View>
 
-            {/* Botão Salvar Registro */}
-            <TouchableOpacity
-                onPress={handleSaveVisitor}
-                style={tw`bg-blue-500 rounded-lg p-4 mb-6 shadow-lg`}
-            >
-                <Text style={tw`text-white text-center font-bold text-lg`}>Salvar Registro</Text>
-            </TouchableOpacity>
 
-            {/* Versão do App */}
-            <View style={tw`mt-6 items-center`}>
-                <Text style={tw`text-gray-400 text-sm`}>Versão 1.0.0</Text>
-                <Text style={tw`text-gray-400 text-xs`}>© {year} Sistema Spulse</Text>
-            </View>
-        
+      const { error } = await supabase
+        .from('agent_checkpoints')
+        .upsert([{
+            user_id: userId,
+            user_email: currentUser,
+            pavilion_id: selectedPavilion.id,
+            date,
+            hours: time,
+            latitude: currentLatitude,
+            longitude: currentLongitude,
+            active: true
+        }], { onConflict: ['user_id', 'pavilion_id', 'date'] });
+
+
+      if (error) throw error;
+
+      Alert.alert('Sucesso', 'Checkpoint registrado com sucesso!');
+      setSelectedPavilion(null);
+      navigation.navigate('PageGeral');
+    } catch (error) {
+      console.error('Erro ao salvar checkpoint:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o checkpoint.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={tw`flex-1 bg-gray-100 p-6`}>
+      <Text style={tw`text-3xl font-extrabold text-center text-blue-600 mb-10`}>
+        Checkpoint do Agente
+      </Text>
+
+      {currentUser && (
+        <View style={tw`bg-gray-100 rounded-lg p-4 mb-6 shadow`}>
+          <Text style={tw`text-base text-gray-700`}>Usuário: <Text style={tw`font-bold text-black`}>{currentUserName}</Text></Text>
+          <Text style={tw`text-base text-gray-700`}>Email: <Text style={tw`font-bold text-black`}>{currentUser}</Text></Text>
         </View>
-    );
-};
+      )}
 
+      <View style={tw`mb-6`}>
+        <Text style={tw`text-lg font-semibold text-gray-700 mb-2`}>Selecione o Pavilhão</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw`flex-row mb-2`}>
+          {pavilions.map(p => (
+            <TouchableOpacity
+              key={p.id}
+              onPress={() => setSelectedPavilion(p)}
+              style={tw`p-4 mr-2 rounded-lg border ${selectedPavilion?.id === p.id ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}`}
+            >
+              <Text style={tw`${selectedPavilion?.id === p.id ? 'text-green-700 font-semibold' : 'text-gray-700'}`}>{p.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <TouchableOpacity
+        onPress={handleSaveCheckpoint}
+        style={tw`bg-blue-500 rounded-lg p-4 mb-6 shadow-lg ${loading ? 'opacity-70' : ''}`}
+        disabled={loading}
+      >
+        <Text style={tw`text-white text-center font-bold text-lg`}>
+          {loading ? 'Registrando...' : 'Salvar Checkpoint'}
+        </Text>
+      </TouchableOpacity>
+
+      <View style={tw`mt-6 items-center`}>
+        <Text style={tw`text-gray-400 text-sm`}>Versão 1.0.0</Text>
+        <Text style={tw`text-gray-400 text-xs`}>© {year} Sistema Spulse</Text>
+      </View>
+    </View>
+  );
+};
 
 export default CheckPoint;

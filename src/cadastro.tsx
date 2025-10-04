@@ -86,8 +86,8 @@ const CadastroSpulse = () => {
             <View style={tw`max-w-md w-full mx-auto`}>
                 {/* Header */}
                 <View style={tw`mb-10`}>
-                    <Text style={tw`text-3xl font-bold text-center text-gray-800 mb-2`}>Crie sua conta</Text>
-                    <Text style={tw`text-center text-gray-500`}>Preencha seus dados para se cadastrar</Text>
+                    <Text style={tw`text-3xl font-bold text-center text-gray-800 mb-2`}>Crie uma conta</Text>
+                    <Text style={tw`text-center text-gray-500`}>Preencha os dados para cadastrar um novo usuário</Text>
                 </View>
 
                 {/* Formulário */}
@@ -105,6 +105,26 @@ const CadastroSpulse = () => {
                                 onChangeText={setName}
                             />
                         </View>
+                    </View>
+
+                    {/* Campo CPF */}
+                    <View style={tw`mb-6`}>
+                        <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>CPF</Text>
+                        <View style={tw`flex-row items-center border ${cpf && !cpfRegex.test(cpf) ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3`}>
+                            <Icon name="id-card-outline" size={20} color="#6B7280" style={tw`mr-2`} />
+                            <TextInput
+                                style={tw`flex-1 h-12 text-gray-800`}
+                                placeholder="000.000.000-00"
+                                placeholderTextColor="#9CA3AF"
+                                keyboardType="numeric"
+                                value={cpf}
+                                onChangeText={handleCpfChange}
+                                maxLength={14}
+                            />
+                        </View>
+                        {cpf && !cpfRegex.test(cpf) && (
+                            <Text style={tw`text-red-500 text-xs mt-1`}>Formato inválido (use: 000.000.000-00)</Text>
+                        )}
                     </View>
 
                     {/* Campo Email */}
@@ -153,25 +173,6 @@ const CadastroSpulse = () => {
                         )}
                     </View>
 
-                    {/* Campo CPF */}
-                    <View style={tw`mb-6`}>
-                        <Text style={tw`text-sm font-medium text-gray-700 mb-1`}>CPF</Text>
-                        <View style={tw`flex-row items-center border ${cpf && !cpfRegex.test(cpf) ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3`}>
-                            <Icon name="id-card-outline" size={20} color="#6B7280" style={tw`mr-2`} />
-                            <TextInput
-                                style={tw`flex-1 h-12 text-gray-800`}
-                                placeholder="000.000.000-00"
-                                placeholderTextColor="#9CA3AF"
-                                keyboardType="numeric"
-                                value={cpf}
-                                onChangeText={handleCpfChange}
-                                maxLength={14}
-                            />
-                        </View>
-                        {cpf && !cpfRegex.test(cpf) && (
-                            <Text style={tw`text-red-500 text-xs mt-1`}>Formato inválido (use: 000.000.000-00)</Text>
-                        )}
-                    </View>
 
                     {/* Botão de Cadastro */}
                     <TouchableOpacity

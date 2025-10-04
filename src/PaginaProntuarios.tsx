@@ -15,33 +15,28 @@ import { useUserContext } from './UserContext';
 
 const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) => {
     const [visitorList, setVisitorList] = useState([]);
-    const [visitorData, setVisitorData] = useState({ name: '', gender: '', age: '' });
     const [selectedProntuario, setSelectedProntuario] = useState(null);
-    const [mapModalVisible, setMapModalVisible] = useState(false); // Renomeado para evitar conflito
+    const [mapModalVisible, setMapModalVisible] = useState(false);
     const [mapCoordinates, setMapCoordinates] = useState({ latitude: null, longitude: null });
-    const [expandedVisitorIdCheck, setExpandedVisitorIdCheck] = useState(null); // Controle de exibição dos detalhes
-    const [expandedVisitorId, setExpandedVisitorId] = useState(null); // Controle de exibição dos detalhes
-    const [currentPage, setCurrentPage] = useState(1); // Página atual
-    const [link, setLink] = useState(''); // Estado para armazenar o link lido
-    const [showPopup, setShowPopup] = useState(false); // Controla a visibilidade do modal
-    const [loading, setLoading] = useState(true);
-    const [checkpoints, setCheckpoints] = useState({}); // Alterado para objeto
-
-    const itemsPerPage = 15; // Número de registros por página
-    const navigation = useNavigation();
-    const isFocused = useIsFocused(); // Hook para detectar quando a tela está em foco
-
-    const [nfcWriting, setNfcWriting] = useState(false); // Estado de escrita do NFC
-    const [nfcReading, setNfcReading] = useState(false); // Estado de leitura do NFC
-
+    const [expandedVisitorIdCheck, setExpandedVisitorIdCheck] = useState(null);
+    const [expandedVisitorId, setExpandedVisitorId] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [checkpoints, setCheckpoints] = useState({});
+    const [nfcWriting, setNfcWriting] = useState(false);
+    const [nfcReading, setNfcReading] = useState(false);
     const [userPavilion, setUserPavilion] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
-    const [currentUserName, setCurrentUserName] = useState(null); // Estado para o nome do usuário
-    
-    
+    const [currentUserName, setCurrentUserName] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [showPopup, setShowPopup] = useState(false); // Controla a visibilidade do modal
+    const [link, setLink] = useState(''); // Estado para armazenar o link lido
 
+    const itemsPerPage = 15;
+    const navigation = useNavigation();
+    const isFocused = useIsFocused();
     const { logoutUser } = useUserContext();
+    
 
 
     useEffect(() => {
@@ -52,7 +47,8 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                 await fetchVisitors();
                 await loadVisitors();
                 
-                                  
+                const pavilion = await fetchUserPavilion();
+                setUserPavilion(pavilion);
                 await fetchCurrentUser();
                 
             } catch (error) {
@@ -63,7 +59,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         };
     
         loadData();
-        loadVisitors();
+        //loadVisitors();
 
         // Função para lidar com deep links
         const handleDeepLink = (event) => {
@@ -95,25 +91,6 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         }
     }, [isFocused]);
      
-    /*
-    const debugUserData = async () => {
-        try {
-            const email = await AsyncStorage.getItem('currentUser');
-            if (!email) return;
-
-            const { data, error } = await supabase
-                .from('usersSpulse')
-                .select('*')
-                .eq('email', email)
-
-            console.log('Dados completos do usuário:', data);
-            console.log('Tipo do campo admin:', typeof data?.admin);
-        } catch (error) {
-            console.error('Erro no debug:', error);
-        }
-    };
-    */
-
     const readTag = async () => {
         try {
             setNfcReading(true);
@@ -185,21 +162,17 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         }
     };
 
+    // ----------------- FUNÇÕES -----------------
     const loadVisitors = async () => {
         try {
             setLoading(true);
-
             const { data, error } = await supabase.from('visitors').select('*');
-
             if (error) throw error;
-
             setVisitorList(data || []);
-            //console.log('Visitantes carregados:', data);
-            setCurrentPage(1); // Resetar para a primeira página
-
+            setCurrentPage(1);
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível buscar os registros de visitantes.');
             console.error('Erro ao buscar visitantes:', error);
+            Alert.alert('Erro', 'Não foi possível buscar os registros de visitantes.');
         } finally {
             setLoading(false);
         }
@@ -208,69 +181,29 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
     const fetchCurrentUser = async () => {
         try {
             const email = await AsyncStorage.getItem('currentUser');
-            if (email) {
-                setCurrentUser(email);
-                // Buscar o nome do usuário a partir do email
-                const { data, error } = await supabase
-                    .from('usersSpulse') // Supondo que sua tabela de usuários se chama 'users'
-                    .select('name')
-                    .eq('email', email)
-
-                if (error) {
-                    console.warn('Erro ao buscar o nome do usuário:', error);
-                } else {
-                    setCurrentUserName(data?.name);
-                }
-            } else {
-                console.warn('Nenhum usuário logado encontrado.');
-            }
+            if (!email) return;
+            setCurrentUser(email);
+            const { data, error } = await supabase.from('usersSpulse').select('name').eq('email', email).single();
+            if (error) console.warn('Erro ao buscar nome do usuário:', error);
+            else setCurrentUserName(data?.name);
         } catch (error) {
             console.error('Erro ao buscar usuário atual:', error);
         }
     };
 
-    
-    // Adicione este useEffect para monitorar mudanças no estado de admin
-    useEffect(() => {
-        // DEBUG: Ver todos os dados do usuário
-        const tests = async () => {
-            //await debugUserData();
-
-            // Busca o pavilhão
-            const pavilion = await fetchUserPavilion();
-            setUserPavilion(pavilion);
-
-        }
-        
-        tests();
-        //console.log('Status de admin atualizado:', isAdmin);
-    }, [isAdmin]);
-
     const fetchUserPavilion = async () => {
         try {
             const email = await AsyncStorage.getItem('currentUser');
-            if (!email) {
-                console.warn('Nenhum email encontrado no AsyncStorage');
-                return null;
-            }
-
+            if (!email) return null;
             const { data, error } = await supabase
-                .from('checkpoints')
+                .from('agent_checkpoints')
                 .select('pavilion')
                 .eq('user_email', email)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
-
             if (error) throw error;
-            
-            if (data) {
-                console.log('Pavilhão encontrado:', data.pavilion);
-                return data.pavilion;
-            } else {
-                console.warn('Nenhum registro de checkpoint encontrado para:', email);
-                return null;
-            }
+            return data?.pavilion || null;
         } catch (error) {
             console.error('Erro ao buscar pavilhão do usuário:', error);
             return null;
@@ -309,44 +242,39 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
     };
 
 
-    // Função fictícia para simular os pavilhões
     const getCheckpoints = async (visitorId) => {
-        if (!visitorId) {
-          Alert.alert('Erro', 'ID do visitante não fornecido');
-          return [];
-        }
-        console.log(visitorId)
-      
+        if (!visitorId) return [];
         try {
-            // Consulta os checkpoints do visitante na tabela `checkpoints_visitors`
-            const { data: checkpointsData, error } = await supabase
-                .from('checkpoints_visitors')
-                .select('*')
-                .eq('visitor_id', visitorId)
-                //.order('time', { ascending: true }); // Ordena pelos registros mais antigos
-                console.log('Dados completos:', checkpointsData, 'Erro:', error);
-
-      
+            const { data, error } = await supabase.from('visitor_checkpoints').select('*').eq('visitor_id', visitorId);
             if (error) throw error;
-
-            // Transforma os dados em um formato mais legível
-            return checkpointsData.map((checkpoint) => {
-                const dateObj = new Date(checkpoint.time);
+            
+            return data.map(c => {
+                // Usar o campo time (timestamptz) como prioridade, fallback para created_at
+                const timestamp = c.time || c.created_at;
+                const dateObj = new Date(timestamp);
+                
+                // Verificar se a data é válida
+                if (isNaN(dateObj.getTime())) {
+                    console.warn('Data inválida:', timestamp);
+                    return {
+                        pavilion: c.pavilion || 'Pavilhão desconhecido',
+                        time: 'Horário inválido',
+                        date_day: 'Data inválida',
+                        fullTime: timestamp
+                    };
+                }
+                
                 return {
-                    pavilion: checkpoint.pavilion || 'Pavilhão desconhecido',
-                    time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date_day: dateObj.toLocaleDateString(),
-                    fullTime: checkpoint.time // Mantemos o timestamp original para ordenação
+                    pavilion: c.pavilion || 'Pavilhão desconhecido',
+                    time: dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    date_day: dateObj.toLocaleDateString('pt-BR'),
+                    fullTime: timestamp
                 };
             });
-          
         } catch (error) {
-          console.error('Erro ao processar checkpoints:', error.message);
-          Alert.alert('Erro', 'Ocorreu um erro ao processar checkpoints');
-          return [];
+            console.error('Erro ao processar checkpoints:', error);
+            return [];
         }
-        
-        
     };
       
     const openMapModal = (latitude, longitude) => {
@@ -370,54 +298,21 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         setMapModalVisible(false);
     };
       
-    const handleRedirectBack = () => {
-        navigation.navigate('RegistrarVisitante'); // Redireciona para a página PageGeral
-    };
-
-    const redirectMarkCheckpoints = () => {
-        navigation.navigate('MarcarCheckpoints'); // Redireciona para a página MarcarCheckpoints
-    };
-
 
     const selectProntuario = async (prontuario) => {
-        // Mostra um indicador de carregamento, se necessário
+        if (!prontuario?.id) return Alert.alert('Erro', 'ID do prontuário inválido.');
         setLoading(true);
-
         try {
-            // Verifica se o objeto prontuario e o id são válidos
-            if (!prontuario || !prontuario.id) {
-                Alert.alert('Erro', 'ID do prontuário inválido.');
-                return;
-            }
-
-            // Redefine o estado antes de buscar novos dados
             setSelectedProntuario(prontuario);
-            console.log('Prontuário selecionado:', prontuario);
-    
-            // Consulta no banco de dados para obter o prontuário completo pelo ID
-            const { data, error } = await supabase
-                .from('visitors') // Supondo que a tabela seja 'visitors'
-                .select('*')
-                .eq('id', prontuario.id);
-    
-            if (error) {
-                console.error('Erro ao buscar prontuário:', error);
-                Alert.alert('Erro', 'Não foi possível buscar os dados do prontuário.');
-            } else {
-                if (data && data.length > 0) {
-                    setSelectedProntuario(data[0]); // Armazena o prontuário completo no estado
-                } else {
-                    Alert.alert('Erro', 'Prontuário não encontrado.');
-                }
-            }
-        } catch (ex) {
-            console.warn('Erro ao selecionar visitante:', ex);
+            const { data, error } = await supabase.from('visitors').select('*').eq('id', prontuario.id);
+            if (error) throw error;
+            if (data?.length > 0) setSelectedProntuario(data[0]);
+            else Alert.alert('Erro', 'Prontuário não encontrado.');
+        } catch (error) {
+            console.error('Erro ao selecionar visitante:', error);
             Alert.alert('Erro', 'Falha ao selecionar o visitante.');
         } finally {
-            // Oculta o indicador de carregamento
             setLoading(false);
-            console.log('Estado de carregamento desativado.');
-
         }
     };
     
@@ -489,6 +384,12 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
 
                 {/* Table Body */}
                 <ScrollView style={tw`flex-1`}>
+                    {currentVisitors.length === 0 && (
+                        <View style={tw`p-8 items-center`}>
+                            <Icon name="people-outline" size={48} color="#D1D5DB" />
+                            <Text style={tw`text-gray-400 mt-4`}>Nenhum visitante registrado</Text>
+                        </View>
+                    )}
                     {currentVisitors.length > 0 ? (
                         currentVisitors.map((visitor) => (
                             <View key={visitor.id} style={tw`border-b border-gray-100`}>
@@ -545,18 +446,14 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
                                             <Text style={tw`text-xs text-gray-500`}>Registrado por</Text>
                                             <Text style={tw`text-gray-700`}>{visitor.registered_by}</Text>
                                         </View>
-                                        <View style={tw`mb-3`}>
-                                            <Text style={tw`text-xs text-gray-500`}>Editado por</Text>
-                                            <Text style={tw`text-gray-700`}>{visitor.edited_by}</Text>
-                                        </View>
                                         <View style={tw`flex-row mb-4`}>
                                             <View style={tw`flex-1`}>
-                                                <Text style={tw`text-xs text-gray-500`}>Data</Text>
-                                                <Text style={tw`text-gray-700`}>{visitor.date}</Text>
+                                                <Text style={tw`text-xs text-gray-500`}>CPF</Text>
+                                                <Text style={tw`text-gray-700`}>{visitor.cpf}</Text>
                                             </View>
                                             <View style={tw`flex-1`}>
-                                                <Text style={tw`text-xs text-gray-500`}>Horário</Text>
-                                                <Text style={tw`text-gray-700`}>{visitor.hours}</Text>
+                                                <Text style={tw`text-xs text-gray-500`}>RG</Text>
+                                                <Text style={tw`text-gray-700`}>{visitor.rg}</Text>
                                             </View>
                                         </View>
 
@@ -588,25 +485,119 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
 
                                 {/* Checkpoints Section */}
                                 {expandedVisitorIdCheck === visitor.id && (
-                                    <View style={tw`bg-amber-50 p-4`}>
-                                        <Text style={tw`text-lg font-bold text-gray-800 mb-3`}>Histórico de Pavilhões</Text>
+                                    <View style={tw`bg-green-50 p-4 border-t border-green-200`}>
+                                        <View style={tw`flex-row justify-between items-center mb-3`}>
+                                            <Text style={tw`text-lg font-bold text-gray-800`}>Histórico de Pavilhões</Text>
+                                            <View style={tw`flex-row items-center`}>
+                                                <Icon name="time" size={16} color="#6366F1" style={tw`mr-1`} />
+                                                <Text style={tw`text-sm text-gray-600`}>
+                                                    {checkpoints[visitor.id]?.length || 0} registro(s)
+                                                </Text>
+                                            </View>
+                                        </View>
                                         
                                         {checkpoints[visitor.id] && checkpoints[visitor.id].length > 0 ? (
-                                            checkpoints[visitor.id].map((checkpoint, index) => (
-                                                <View key={`${checkpoint.visitor_id}-${index}`} style={tw`flex-row justify-between items-center py-2 border-b border-gray-100`}>
-                                                    <View>
-                                                        <Text style={tw`font-medium text-gray-700`}>{checkpoint.pavilion}</Text>
-                                                        <Text style={tw`text-xs text-gray-500`}>{checkpoint.date_day}</Text>
+                                            <View style={tw`bg-white rounded-lg border border-gray-200`}>
+                                                {checkpoints[visitor.id].map((checkpoint, index) => (
+                                                    <View 
+                                                        key={`${checkpoint.visitor_id}-${index}`} 
+                                                        style={tw`flex-row justify-between items-center p-3 ${
+                                                            index !== checkpoints[visitor.id].length - 1 ? 'border-b border-gray-100' : ''
+                                                        }`}
+                                                    >
+                                                        <View style={tw`flex-1`}>
+                                                            <View style={tw`flex-row items-center mb-1`}>
+                                                                <Icon 
+                                                                    name="business" 
+                                                                    size={14} 
+                                                                    color="#3B82F6" 
+                                                                    style={tw`mr-2`} 
+                                                                />
+                                                                <Text style={tw`font-semibold text-gray-800`}>
+                                                                    {checkpoint.pavilion}
+                                                                </Text>
+                                                            </View>
+                                                            
+                                                            <View style={tw`flex-row items-center`}>
+                                                                <Icon 
+                                                                    name="calendar" 
+                                                                    size={12} 
+                                                                    color="#6B7280" 
+                                                                    style={tw`mr-2`} 
+                                                                />
+                                                                <Text style={tw`text-xs text-gray-600`}>
+                                                                    {checkpoint.date_day}
+                                                                </Text>
+                                                                
+                                                                <Icon 
+                                                                    name="time" 
+                                                                    size={12} 
+                                                                    color="#6B7280" 
+                                                                    style={tw`ml-3 mr-2`} 
+                                                                />
+                                                                <Text style={tw`text-xs text-gray-600`}>
+                                                                    {checkpoint.time}
+                                                                </Text>
+                                                            </View>
+                                                            
+                                                            {checkpoint.registered_by && (
+                                                                <View style={tw`flex-row items-center mt-1`}>
+                                                                    <Icon 
+                                                                        name="person" 
+                                                                        size={12} 
+                                                                        color="#8B5CF6" 
+                                                                        style={tw`mr-2`} 
+                                                                    />
+                                                                    <Text style={tw`text-xs text-purple-600`}>
+                                                                        Por: {checkpoint.registered_by}
+                                                                    </Text>
+                                                                </View>
+                                                            )}
+                                                        </View>
+                                                        
+                                                        <View style={tw`bg-green-100 px-2 py-1 rounded-full`}>
+                                                            <Text style={tw`text-xs text-green-800 font-medium`}>
+                                                                #{index + 1}
+                                                            </Text>
+                                                        </View>
                                                     </View>
-                                                    <Text style={tw`text-gray-700`}>{checkpoint.time}</Text>
+                                                ))}
+                                                
+                                                {/* Resumo */}
+                                                <View style={tw`bg-gray-50 p-3 border-t border-gray-200`}>
+                                                    <Text style={tw`text-sm text-gray-700 text-center`}>
+                                                        Primeiro registro: {checkpoints[visitor.id][checkpoints[visitor.id].length - 1]?.date_day} • 
+                                                        Último: {checkpoints[visitor.id][0]?.date_day}
+                                                    </Text>
                                                 </View>
-                                            ))
+                                            </View>
                                         ) : (
-                                            <View style={tw`py-4 items-center`}>
-                                                <Icon name="alert-circle" size={24} color="#6B7280" />
-                                                <Text style={tw`text-gray-500 mt-2`}>Nenhum registro encontrado</Text>
+                                            <View style={tw`bg-white rounded-lg border border-gray-200 p-6 items-center`}>
+                                                <Icon name="walk" size={32} color="#9CA3AF" />
+                                                <Text style={tw`text-gray-500 mt-2 text-center`}>
+                                                    Nenhum checkpoint registrado
+                                                </Text>
+                                                <Text style={tw`text-gray-400 text-xs mt-1 text-center`}>
+                                                    Este visitante ainda não passou por nenhum pavilhão
+                                                </Text>
                                             </View>
                                         )}
+                                        
+
+
+                                        {/* Botão de ação 
+                                        <TouchableOpacity 
+                                            style={tw`bg-red-500 mt-3 p-3 rounded-lg flex-row items-center justify-center`}
+                                            onPress={() => navigation.navigate('MarcarCheckpoints', { visitorId: visitor.id })}
+                                        >
+                                            <Icon name="add-circle" size={18} color="white" style={tw`mr-2`} />
+                                            <Text style={tw`text-white font-medium`}>
+                                                Registrar Novo Checkpoint
+                                            </Text>
+                                        </TouchableOpacity>
+                                        */}
+
+
                                     </View>
                                 )}
                             </View>
