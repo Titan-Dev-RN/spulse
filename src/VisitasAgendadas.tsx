@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Alert, FlatList, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Alert, FlatList, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { supabase } from '../services/supabase';
 import Icon from 'react-native-vector-icons/Ionicons';
 import tw from 'tailwind-react-native-classnames';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigation } from '@react-navigation/native';
+import { checkAndShowOverdueVisits, setupOverdueVisitsModal  } from '../functions/visitas_estouradas';
 
 export default function VisitasAgendadas() {
   const [visitas, setVisitas] = useState([]);
@@ -19,11 +20,11 @@ export default function VisitasAgendadas() {
 
   // Status disponíveis
   const statusOptions = [
-    { value: 'confirmada', label: 'Confirmada', color: '#10B981', icon: 'checkmark-circle' },
-    { value: 'cancelada', label: 'Cancelada', color: '#EF4444', icon: 'close-circle' },
-    { value: 'concluida', label: 'Concluída', color: '#3B82F6', icon: 'checkmark-done-circle' },
-    { value: 'pendente', label: 'Pendente', color: '#F59E0B', icon: 'time' },
-    { value: 'em_andamento', label: 'Em Andamento', color: '#8B5CF6', icon: 'walk' }
+      { value: 'confirmada', label: 'Confirmada', color: '#10B981', icon: 'checkmark-circle' },
+      { value: 'cancelada', label: 'Cancelada', color: '#EF4444', icon: 'close-circle' },
+      { value: 'concluida', label: 'Concluída', color: '#3B82F6', icon: 'checkmark-done-circle' },
+      { value: 'pendente', label: 'Pendente', color: '#F59E0B', icon: 'time' },
+      { value: 'em_andamento', label: 'Em Andamento', color: '#8B5CF6', icon: 'walk' } // Corrigido para underline
   ];
 
   // Buscar visitas agendadas
@@ -57,6 +58,7 @@ export default function VisitasAgendadas() {
   useEffect(() => {
     fetchVisitas();
   }, []);
+
 
   // Atualizar status da visita
   const atualizarStatus = async () => {
@@ -106,6 +108,209 @@ export default function VisitasAgendadas() {
   const getStatusInfo = (status) => {
     return statusOptions.find(opt => opt.value === status) || 
            { label: status, color: '#6B7280', icon: 'help-circle' };
+  };
+
+
+  // Botão para verificação manual
+  const ManualCheckButton = () => (
+    <TouchableOpacity
+        onPress={checkAndShowOverdueVisits}
+        style={tw`bg-yellow-500 rounded-lg p-3 mt-4`}
+    >
+        <Text style={tw`text-white text-center font-semibold`}>
+            Verificar Visitas Atrasadas
+        </Text>
+    </TouchableOpacity>
+  );
+
+  const [overdueSearch, setOverdueSearch] = useState('');
+  const [overduePage, setOverduePage] = useState(1);
+  const OVERDUE_PER_PAGE = 2;
+  const [overdueVisitsModal, setOverdueVisitsModal] = useState(false);
+  const [overdueVisitsData, setOverdueVisitsData] = useState([]);
+
+  // Filtrar visitas atrasadas pelo nome do visitante
+  const filteredOverdueVisits = overdueVisitsData.filter(v =>
+    v.visitorName.toLowerCase().includes(overdueSearch.toLowerCase())
+  );
+
+  // Calcular visitas da página atual
+  const paginatedOverdueVisits = filteredOverdueVisits.slice(
+    (overduePage - 1) * OVERDUE_PER_PAGE,
+    overduePage * OVERDUE_PER_PAGE
+  );
+
+  const totalOverduePages = Math.ceil(filteredOverdueVisits.length / OVERDUE_PER_PAGE);
+
+  useEffect(() => {
+    setupOverdueVisitsModal(setOverdueVisitsModal, setOverdueVisitsData);
+    setOverduePage(1);
+  }, [overdueSearch]);
+
+  // Modal para mostrar visitas atrasadas
+  const OverdueVisitsModal = () => (
+    <Modal
+      visible={overdueVisitsModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setOverdueVisitsModal(false)}
+    > 
+      <View style={tw`flex-1 justify-center bg-black bg-opacity-50 p-4`}>
+        <View style={tw`bg-white rounded-xl max-h-3/4`}>
+          {/* Header */}
+          <View style={tw`bg-red-50 rounded-t-xl p-4 border-b border-red-200`}>
+            <View style={tw`flex-row justify-between items-center`}>
+              <View style={tw`flex-row items-center`}>
+                <Icon name="warning" size={24} color="#DC2626" />
+                <Text style={tw`text-red-800 text-xl font-bold ml-2`}>
+                  Visitas Atrasadas
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setOverdueVisitsModal(false)}>
+                <Icon name="close" size={24} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+            <Text style={tw`text-red-600 mt-1`}>
+              {overdueVisitsData.length} visita(s) com tempo estourado
+            </Text>
+            
+            {/* Campo de pesquisa - ADICIONADO AQUI */}
+            <TextInput
+              style={tw`border-2 border-red-200 rounded-xl p-2 mt-2 bg-white text-red-800`}
+              placeholder="Pesquisar visitante atrasado..."
+              placeholderTextColor="#DC2626"
+              value={overdueSearch}
+              onChangeText={setOverdueSearch}
+            />
+          </View>
+
+          {/* Content */}
+          <ScrollView style={tw`p-4`}>
+            {paginatedOverdueVisits.map((visit, index) => (
+              <View key={visit.id} style={tw`mb-4 p-3 bg-red-50 rounded-lg border border-red-200`}>
+                {/* Header da visita */}
+                <View style={tw`flex-row justify-between items-start mb-2`}>
+                  <Text style={tw`text-red-800 font-bold text-lg flex-1`}>
+                    {visit.visitorName}
+                  </Text>
+                  <View style={tw`bg-red-500 px-2 py-1 rounded-full`}>
+                    <Text style={tw`text-white text-xs font-bold`}>
+                      {formatOverdueTime(visit.overdueMinutes)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Informações da visita */}
+                <View style={tw`space-y-1`}>
+                  <View style={tw`flex-row items-center`}>
+                    <Icon name="time" size={14} color="#DC2626" />
+                    <Text style={tw`text-red-700 text-sm ml-2`}>
+                      Agendado: {visit.scheduledTime}
+                    </Text>
+                  </View>
+                  <View style={tw`flex-row items-center`}>
+                    <Icon name="alert-circle" size={14} color="#DC2626" />
+                    <Text style={tw`text-red-700 text-sm ml-2`}>
+                      Previsão: {visit.estimatedEndTime}
+                    </Text>
+                  </View>
+                  <View style={tw`flex-row items-center`}>
+                    <Icon name="document-text" size={14} color="#DC2626" />
+                    <Text style={tw`text-red-700 text-sm ml-2`}>
+                      Motivo: {visit.motivo}
+                    </Text>
+                  </View>
+                  <View style={tw`flex-row items-center`}>
+                    <Icon name="business" size={14} color="#DC2626" />
+                    <Text style={tw`text-red-700 text-sm ml-2`}>
+                      Duração: {visit.expectedDuration}
+                    </Text>
+                  </View>
+                  <View style={tw`flex-row items-center`}>
+                    <Icon name="location" size={14} color="#DC2626" />
+                    <Text style={tw`text-red-700 text-sm ml-2`}>
+                      Status: {visit.status}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Pavilhões planejados */}
+                {visit.pavilions && visit.pavilions.length > 0 && (
+                  <View style={tw`mt-2`}>
+                    <Text style={tw`text-red-800 font-semibold text-sm mb-1`}>
+                      Rota Planejada:
+                    </Text>
+                    <View style={tw`flex-row flex-wrap`}>
+                      {visit.pavilions.map((pavilion, idx) => (
+                        <View key={idx} style={tw`bg-white px-2 py-1 rounded mr-2 mb-1 border border-red-300`}>
+                          <Text style={tw`text-red-700 text-xs`}>
+                            {pavilion.order_number}. {pavilion.name || `Pav. ${pavilion.pavilion}`}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>       
+            ))}
+            {paginatedOverdueVisits.length === 0 && (
+              <View style={tw`items-center py-6`}>
+                <Icon name="alert-circle" size={32} color="#DC2626" />
+                <Text style={tw`text-red-700 mt-2`}>
+                  {overdueSearch ? 'Nenhum visitante encontrado' : 'Nenhum visitante atrasado encontrado'}
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Paginação */}
+          {totalOverduePages > 1 && (
+            <View style={tw`flex-row justify-center items-center mb-2`}>
+              <TouchableOpacity
+                onPress={() => overduePage > 1 && setOverduePage(overduePage - 1)}
+                disabled={overduePage === 1}
+                style={tw`px-3 py-2 mx-1 rounded bg-red-200 ${overduePage === 1 ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-red-700`}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={tw`mx-2 text-red-700`}>
+                Página {overduePage} de {totalOverduePages}
+              </Text>
+              <TouchableOpacity
+                onPress={() => overduePage < totalOverduePages && setOverduePage(overduePage + 1)}
+                disabled={overduePage === totalOverduePages}
+                style={tw`px-3 py-2 mx-1 rounded bg-red-200 ${overduePage === totalOverduePages ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-red-700`}>Próxima</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Footer */}
+          <View style={tw`p-4 border-t border-red-200`}>
+            <TouchableOpacity
+              onPress={() => setOverdueVisitsModal(false)}
+              style={tw`bg-red-600 rounded-lg py-3`}
+            >
+              <Text style={tw`text-white text-center font-semibold`}>
+                Fechar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // Função auxiliar para formatar tempo
+  const formatOverdueTime = (minutes) => {
+      if (minutes < 60) {
+          return `${minutes} min atrasado`;
+      } else {
+          const hours = Math.floor(minutes / 60);
+          const remainingMinutes = minutes % 60;
+          return `${hours}h ${remainingMinutes}min atrasado`;
+      }
   };
 
   // Renderizar item da lista
@@ -227,6 +432,7 @@ export default function VisitasAgendadas() {
         <Text style={tw`text-gray-600`}>
           Gerencie e acompanhe o status das visitas agendadas
         </Text>
+        <ManualCheckButton />
       </View>
 
       {/* Lista de visitas */}
@@ -247,6 +453,9 @@ export default function VisitasAgendadas() {
           </View>
         }
       />
+
+      {/* Modal de visitas atrasadas */}
+      <OverdueVisitsModal />
 
       {/* Modal para alterar status */}
       <Modal

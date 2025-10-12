@@ -7,6 +7,7 @@ import { supabase } from '../services/supabase';
 import { WebView } from 'react-native-webview';
 import tw from 'tailwind-react-native-classnames';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { checkAndAlertOverdueVisits, startOverdueCheckInterval } from '../functions/visitas_estouradas';
 
 const ProntuarioScreen = ({ route }) => {
     const { id } = route.params;
@@ -23,16 +24,76 @@ const ProntuarioScreen = ({ route }) => {
     const [activeTab, setActiveTab] = useState('realizados');
     const [visitDuration, setVisitDuration] = useState('');
 
+    const [isVisitOverdue, setIsVisitOverdue] = useState(false);
+    const [overdueAlertShown, setOverdueAlertShown] = useState(false);
+
     const navigation = useNavigation();
 
     useEffect(() => {
         if (id) {
             fetchVisitor();
             fetchCheckpoints();
+            checkVisitStatus();
         } else {
             Alert.alert('Erro', 'ID do prontuário não fornecido.');
         }
     }, [id]);
+
+    // Função para verificar se a visita está atrasada
+    const checkVisitStatus = async () => {
+        try {
+            // Buscar informações da visita atual/agendada
+            const { data: visitData, error } = await supabase
+                .from('visitor_agendamento')
+                .select(`
+                    *,
+                    scheduled_checkpoints (
+                        id,
+                        tempo_estimado,
+                        order_number
+                    )
+                `)
+                .eq('visitor_id', id)
+                .eq('status', 'em_andamento') // ou outro status que indique visita em andamento
+                .order('scheduled_date', { ascending: false })
+                .limit(1);
+
+            if (error) throw error;
+
+            if (visitData && visitData.length > 0) {
+                const currentVisit = visitData[0];
+                const isOverdue = await checkAndAlertOverdueVisits([currentVisit], false);
+                
+                setIsVisitOverdue(isOverdue);
+                
+                // Mostrar alerta apenas uma vez
+                if (isOverdue && !overdueAlertShown) {
+                    showOverdueAlert();
+                    setOverdueAlertShown(true);
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao verificar status da visita:', error);
+        }
+    };
+
+    const showOverdueAlert = () => {
+        Alert.alert(
+            'Visita Atrasada ⚠️',
+            'Esta visita está atrasada em relação ao tempo estimado. Verifique os checkpoints pendentes.',
+            [
+                {
+                    text: 'Entendi',
+                    style: 'default'
+                },
+                {
+                    text: 'Ver Detalhes',
+                    onPress: () => setActiveTab('planejados')
+                }
+            ]
+        );
+    };
+
 
     const fetchVisitor = async () => {
         if (!id) {
@@ -374,7 +435,25 @@ const ProntuarioScreen = ({ route }) => {
         <ScrollView contentContainerStyle={tw`p-6 bg-gray-50 flex-grow`}>
             {visitorData ? (
                 <View style={tw`bg-white rounded-xl shadow-md p-6`}>
-                    <Text style={tw`text-3xl font-bold text-gray-800 mb-4`}>Ficha do Visitante</Text>
+                    {/* Título com indicador de atraso */}
+                    <View style={tw`flex-row justify-between items-center mb-4`}>
+                        <Text style={tw`text-3xl font-bold text-gray-800`}>Ficha do Visitante</Text>
+                        {isVisitOverdue && (
+                            <View style={tw`bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-r-lg`}>
+                                <View style={tw`flex-row items-center`}>
+                                    <Icon name="warning" size={20} color="#DC2626" style={tw`mr-2`} />
+                                    <Text style={tw`text-red-800 font-semibold`}>
+                                        Visita Atrasada
+                                    </Text>
+                                </View>
+                                <Text style={tw`text-red-700 mt-1 text-sm`}>
+                                    Esta visita está fora do tempo estimado. Verifique os checkpoints pendentes.
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                    
+
                     
                     <View style={tw`mb-6`}>
                         <Text style={tw`text-sm font-medium text-gray-500`}>ID do Visitante</Text>

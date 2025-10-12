@@ -8,12 +8,15 @@ import { format } from 'date-fns';
 import { Picker } from '@react-native-picker/picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
+
 
 export default function Agendamento() {
   const [visitors, setVisitors] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  
 
   const [selectedVisitor, setSelectedVisitor] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
@@ -26,13 +29,77 @@ export default function Agendamento() {
   const [minutes, setMinutes] = useState('');
 
   const [visitReason, setVisitReason] = useState('');
+  const [nfcReading, setNfcReading] = useState(false);
   const navigation = useNavigation();
 
 
+  const [visitorSearch, setVisitorSearch] = useState('');
+  const [visitorPage, setVisitorPage] = useState(1);
+  const VISITORS_PER_PAGE = 5;
+
+  // Filtrar visitantes pelo nome
+  const filteredVisitors = visitors.filter(v =>
+    v.name.toLowerCase().includes(visitorSearch.toLowerCase())
+  );
+
+  // Calcular visitantes da página atual
+  const paginatedVisitors = filteredVisitors.slice(
+    (visitorPage - 1) * VISITORS_PER_PAGE,
+    visitorPage * VISITORS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(filteredVisitors.length / VISITORS_PER_PAGE);
+
+  const handlePrevPage = () => {
+    if (visitorPage > 1) setVisitorPage(visitorPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (visitorPage < totalPages) setVisitorPage(visitorPage + 1);
+  };
+
+  // Sempre que pesquisar, volta para página 1
+  useEffect(() => {
+    setVisitorPage(1);
+  }, [visitorSearch]);
+
+  const [routeSearch, setRouteSearch] = useState('');
+  const [routePage, setRoutePage] = useState(1);
+  const ROUTES_PER_PAGE = 5;
+
+  // Filtrar rotas pelo nome
+  const filteredRoutes = routes.filter(r =>
+    r.name_route.toLowerCase().includes(routeSearch.toLowerCase())
+  );
+
+  // Calcular rotas da página atual
+  const paginatedRoutes = filteredRoutes.slice(
+    (routePage - 1) * ROUTES_PER_PAGE,
+    routePage * ROUTES_PER_PAGE
+  );
+
+  const totalRoutePages = Math.ceil(filteredRoutes.length / ROUTES_PER_PAGE);
+
+  const handlePrevRoutePage = () => {
+    if (routePage > 1) setRoutePage(routePage - 1);
+  };
+
+  const handleNextRoutePage = () => {
+    if (routePage < totalRoutePages) setRoutePage(routePage + 1);
+  };
+
+  // Sempre que pesquisar, volta para página 1
+  useEffect(() => {
+    setRoutePage(1);
+  }, [routeSearch]);
+
   // Opções pré-definidas para motivo da visita
   const visitReasons = [
-    'Visita técnica',
-    'Entrega',
+    'Visita',
+    'Familiar',
+    'Cliente',
+    'Fornecedor',
+    'Advogado',
     'Reunião',
     'Manutenção',
     'Instalação',
@@ -40,9 +107,18 @@ export default function Agendamento() {
     'Outro'
   ];
 
+  // Inicializar NFC
+  useEffect(() => {
+    NfcManager.start();
+    return () => {
+      NfcManager.cancelTechnologyRequest();
+    };
+  }, []);
+
   const handleHoursChange = (text) => {
     // Permite apenas números e limita a 2 dígitos
     const numericText = text.replace(/[^0-9]/g, '');
+    // Aceita valor vazio OU número entre 0-23
     if (numericText === '' || (parseInt(numericText) >= 0 && parseInt(numericText) <= 23)) {
       setHours(numericText);
     }
@@ -51,12 +127,24 @@ export default function Agendamento() {
   const handleMinutesChange = (text) => {
     // Permite apenas números e limita a 2 dígitos
     const numericText = text.replace(/[^0-9]/g, '');
+    // Aceita valor vazio OU número entre 0-59
     if (numericText === '' || (parseInt(numericText) >= 0 && parseInt(numericText) <= 59)) {
       setMinutes(numericText);
     }
   };
 
+
+
   const getEstimatedTime = () => {
+    // Se tiver apenas minutos (e horas vazia)
+    if (!hours && minutes) {
+      return `00:${minutes.padStart(2, '0')}:00`;
+    }
+    // Se tiver apenas horas (e minutos vazia)
+    if (hours && !minutes) {
+      return `${hours.padStart(2, '0')}:00:00`;
+    }
+    // Se tiver ambos
     if (hours && minutes) {
       return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
     }
@@ -108,6 +196,166 @@ export default function Agendamento() {
 
     fetchData();
   }, []);
+
+   // Função para ler NFC
+  const readNfcTag = async () => {
+    try {
+      setNfcReading(true);
+      await NfcManager.requestTechnology(NfcTech.Ndef);
+      const tag = await NfcManager.getTag();
+      
+      if (!tag?.ndefMessage?.length) {
+        throw new Error('Nenhuma mensagem NDEF encontrada na pulseira');
+      }
+
+      const record = tag.ndefMessage[0];
+      let payloadContent = '';
+
+      if (record.tnf === Ndef.TNF_WELL_KNOWN && record.type[0] === 0x55) {
+        // URI
+        payloadContent = Ndef.uri.decodePayload(record.payload);
+      } else if (record.tnf === Ndef.TNF_WELL_KNOWN && arrayEquals(record.type, Ndef.RTD_TEXT)) {
+        // Texto
+        payloadContent = Ndef.text.decodePayload(record.payload);
+      } else {
+        // Outros tipos
+        payloadContent = String.fromCharCode.apply(null, record.payload);
+      }
+
+      console.log('Conteúdo lido do NFC:', payloadContent);
+
+      // Extrair ID do visitante do payload
+      const visitorId = extractVisitorId(payloadContent);
+      if (!visitorId) {
+        throw new Error('ID do visitante não encontrado na pulseira');
+      }
+
+      console.log('ID do visitante extraído:', visitorId);
+
+      // Buscar visitante no estado local
+      const foundVisitor = visitors.find(v => v.id.toString() === visitorId.toString());
+      
+      if (foundVisitor) {
+        setSelectedVisitor(foundVisitor.id);
+        Alert.alert(
+          'Visitante Identificado', 
+          `${foundVisitor.name} (ID: ${foundVisitor.id})`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        // Se não encontrou localmente, buscar no banco
+        await searchVisitorInDatabase(visitorId);
+      }
+
+    } catch (error) {
+      console.error('Erro na leitura NFC:', error);
+      
+      if (error.message.includes('NfcManager')) {
+        Alert.alert(
+          'Erro NFC', 
+          'Não foi possível ler a pulseira. Verifique se o NFC está ativado.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Visitante Não Encontrado', 
+          error.message,
+          [
+            { 
+              text: 'Atualizar Lista', 
+              onPress: async () => {
+                await fetchVisitors();
+                readNfcTag();
+              } 
+            },
+            { text: 'OK' }
+          ]
+        );
+      }
+    } finally {
+      setNfcReading(false);
+      NfcManager.cancelTechnologyRequest();
+    }
+  };
+
+  // Função auxiliar para extrair ID do visitante
+  const extractVisitorId = (payload) => {
+    try {
+      // Tentar diferentes formatos de payload
+      
+      // Formato URL: https://exemplo.com/visitors/123
+      if (payload.includes('/visitors/')) {
+        return payload.split('/visitors/')[1];
+      }
+      
+      // Formato URL: https://exemplo.com/123
+      if (payload.includes('/')) {
+        const parts = payload.split('/');
+        return parts[parts.length - 1];
+      }
+      
+      // Se for apenas o ID
+      if (!isNaN(payload)) {
+        return payload;
+      }
+      
+      // Tentar parsear como JSON
+      try {
+        const jsonData = JSON.parse(payload);
+        return jsonData.visitorId || jsonData.id || null;
+      } catch {
+        return null;
+      }
+    } catch (error) {
+      console.error('Erro ao extrair ID:', error);
+      return null;
+    }
+  };
+
+  // Função auxiliar para comparar arrays
+  function arrayEquals(a, b) {
+    return a.length === b.length && a.every((val, idx) => val === b[idx]);
+  }
+
+  // Buscar visitante no banco de dados
+  const searchVisitorInDatabase = async (visitorId) => {
+    try {
+      const { data: visitorData, error } = await supabase
+        .from('visitors')
+        .select('id, name')
+        .eq('id', visitorId)
+        .single();
+
+      if (error) throw new Error('Visitante não encontrado no sistema');
+      
+      if (visitorData) {
+        setSelectedVisitor(visitorData.id);
+        // Atualizar lista local
+        setVisitors(prev => [...prev, visitorData]);
+        Alert.alert(
+          'Visitante Encontrado', 
+          `${visitorData.name} (ID: ${visitorData.id})`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      throw new Error(`Visitante com ID ${visitorId} não encontrado`);
+    }
+  };
+
+  // Buscar visitantes
+  const fetchVisitors = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('visitors')
+        .select('id, name, user_id');
+      
+      if (error) throw error;
+      setVisitors(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar visitantes:', error);
+    }
+  };
 
   const handleScheduleVisit = async () => {
     if (!selectedVisitor || !selectedRoute || !visitDate || !visitReason) {
@@ -218,8 +466,57 @@ export default function Agendamento() {
             Selecione o Visitante *
           </Text>
           
+          {/* Botão NFC */}
+          <TouchableOpacity
+            onPress={readNfcTag}
+            disabled={nfcReading}
+            style={tw`bg-purple-600 rounded-lg p-4 flex-row items-center justify-center mb-4 ${nfcReading ? 'opacity-70' : ''}`}
+          >
+            <Icon name="scan" size={20} color="white" style={tw`mr-2`} />
+            <Text style={tw`text-white font-medium text-lg`}>
+              {nfcReading ? 'Lendo Pulseira...' : 'Ler Pulseira NFC'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Visitante Selecionado via NFC */}
+          {selectedVisitor && (
+            <View style={tw`bg-green-50 border-2 border-green-200 rounded-xl p-4 mb-4`}>
+              <View style={tw`flex-row items-center`}>
+                <Icon name="checkmark-circle" size={24} color="#10B981" style={tw`mr-3`} />
+                <View>
+                  <Text style={tw`text-green-800 font-semibold`}>
+                    Visitante Selecionado:
+                  </Text>
+                  <Text style={tw`text-green-700`}>
+                    {visitors.find(v => v.id === selectedVisitor)?.name} 
+                    (ID: {selectedVisitor})
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setSelectedVisitor(null)}
+                style={tw`mt-2 bg-red-100 rounded-lg px-3 py-1 self-start`}
+              >
+                <Text style={tw`text-red-600 text-sm`}>Limpar Seleção</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <Text style={tw`text-gray-600 mb-3 text-center`}>- OU -</Text>
+          <Text style={tw`text-gray-600 mb-3 text-center`}>Selecione manualmente:</Text>
+          
+          <View style={tw`mb-4`}>
+            <TextInput
+              style={tw`border-2 border-gray-200 rounded-xl p-3 bg-gray-50 text-gray-800`}
+              placeholder="Pesquisar visitante pelo nome..."
+              placeholderTextColor="#9CA3AF"
+              value={visitorSearch}
+              onChangeText={setVisitorSearch}
+            />
+          </View>
+
           <FlatList
-            data={visitors}
+            data={paginatedVisitors}
             horizontal
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
@@ -255,6 +552,30 @@ export default function Agendamento() {
               </View>
             }
           />
+
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <View style={tw`flex-row justify-center items-center mt-2`}>
+              <TouchableOpacity
+                onPress={handlePrevPage}
+                disabled={visitorPage === 1}
+                style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${visitorPage === 1 ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-gray-700`}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={tw`mx-2 text-gray-700`}>
+                Página {visitorPage} de {totalPages}
+              </Text>
+              <TouchableOpacity
+                onPress={handleNextPage}
+                disabled={visitorPage === totalPages}
+                style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${visitorPage === totalPages ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-gray-700`}>Próxima</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
         </View>
 
         {/* Seção Rota */}
@@ -264,8 +585,18 @@ export default function Agendamento() {
             Selecione a Rota *
           </Text>
           
+          <View style={tw`mb-4`}>
+            <TextInput
+              style={tw`border-2 border-gray-200 rounded-xl p-3 bg-gray-50 text-gray-800`}
+              placeholder="Pesquisar rota pelo nome..."
+              placeholderTextColor="#9CA3AF"
+              value={routeSearch}
+              onChangeText={setRouteSearch}
+            />
+          </View>
+
           <FlatList
-            data={routes}
+            data={paginatedRoutes}
             horizontal
             showsHorizontalScrollIndicator={false}
             renderItem={({ item }) => (
@@ -301,6 +632,30 @@ export default function Agendamento() {
               </View>
             }
           />
+
+          {/* Paginação das rotas */}
+          {totalRoutePages > 1 && (
+            <View style={tw`flex-row justify-center items-center mt-2`}>
+              <TouchableOpacity
+                onPress={handlePrevRoutePage}
+                disabled={routePage === 1}
+                style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${routePage === 1 ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-gray-700`}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={tw`mx-2 text-gray-700`}>
+                Página {routePage} de {totalRoutePages}
+              </Text>
+              <TouchableOpacity
+                onPress={handleNextRoutePage}
+                disabled={routePage === totalRoutePages}
+                style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${routePage === totalRoutePages ? 'opacity-50' : ''}`}
+              >
+                <Text style={tw`text-gray-700`}>Próxima</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
         </View>
 
         {/* Seção Agendador (usuário logado) */}
@@ -390,11 +745,12 @@ export default function Agendamento() {
           <View style={tw`flex-row items-center`}>
             <View style={tw`flex-1 mr-2`}>
               <Text style={tw`text-sm text-gray-600 mb-1`}>Horas</Text>
+              {/* No campo Horas */}
               <TextInput
                 placeholder="0"
                 placeholderTextColor="#9CA3AF"
                 value={hours}
-                onChangeText={setHours}
+                onChangeText={handleHoursChange} 
                 keyboardType="numeric"
                 maxLength={2}
                 style={tw`border-2 border-gray-200 rounded-xl p-4 bg-gray-50 text-gray-800`}
@@ -402,11 +758,12 @@ export default function Agendamento() {
             </View>
             <View style={tw`flex-1 ml-2`}>
               <Text style={tw`text-sm text-gray-600 mb-1`}>Minutos</Text>
+              {/* No campo Minutos */}
               <TextInput
                 placeholder="0"
                 placeholderTextColor="#9CA3AF"
                 value={minutes}
-                onChangeText={setMinutes}
+                onChangeText={handleMinutesChange}
                 keyboardType="numeric"
                 maxLength={2}
                 style={tw`border-2 border-gray-200 rounded-xl p-4 bg-gray-50 text-gray-800`}
@@ -448,7 +805,7 @@ export default function Agendamento() {
           } shadow-sm`}
         >
           <Text style={tw`text-white text-center font-bold text-lg`}>
-            <Icon name="calendar-check" size={20} color="white" style={tw`mr-2`} />
+            <Icon name="calendar" size={20} color="white" style={tw`mr-2`} />
             Agendar Visita
           </Text>
         </TouchableOpacity>

@@ -60,7 +60,7 @@ const InputCRUD = () => {
         // Função para lidar com deep links
         const handleDeepLink = (event) => {
             const link = event.url;
-            console.log('Deep link recebido:', link);
+            //console.log('Deep link recebido:', link);
             const prontuarioId = link.split('/').pop();
             
             if (prontuarioId) {

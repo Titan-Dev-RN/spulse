@@ -70,24 +70,25 @@ const ControladorDashboard = () => {
 
     const fetchVisitorsLast7Days = async () => {
         try {
-            const dates = [];
+            const visitorsByDay = [];
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                dates.push(date.toISOString().split('T')[0]);
-            }
 
-            const visitorsByDay = [];
-            
-            for (const date of dates) {
+                // Início e fim do dia em UTC
+                const start = new Date(date);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(date);
+                end.setHours(23, 59, 59, 999);
+
                 const { count } = await supabase
                     .from('visitors')
                     .select('*', { count: 'exact' })
-                    .eq('created_at', date);
-                
+                    .gte('created_at', start.toISOString())
+                    .lt('created_at', end.toISOString());
+
                 visitorsByDay.push(count || 0);
             }
-
             return visitorsByDay;
         } catch (error) {
             console.error('Erro ao buscar dados de visitantes:', error);
@@ -139,11 +140,17 @@ const ControladorDashboard = () => {
             if (totalError) throw totalError;
 
             // Visitantes de hoje
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date();
+            const start = new Date(today);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(today);
+            end.setHours(23, 59, 59, 999);
+
             const { count: todayCount, error: todayError } = await supabase
                 .from('visitors')
                 .select('*', { count: 'exact' })
-                .eq('created_at', today);
+                .gte('created_at', start.toISOString())
+                .lt('created_at', end.toISOString());
 
             if (todayError) throw todayError;
 
@@ -339,7 +346,7 @@ const ControladorDashboard = () => {
                     {/* Gráfico de Checkpoints por Pavilhão */}
                     {checkpointsByPavilion.length > 0 && (
                         <View style={tw`bg-white rounded-xl p-4 shadow-sm`}>
-                            <Text style={tw`font-medium text-gray-800 mb-2`}>Checkpoints por Pavilhão (7 dias)</Text>
+                            <Text style={tw`font-medium text-gray-800 mb-2`}>Checkpoints por Pavilhão - Agentes (7 dias)</Text>
                             <PieChart
                                 data={checkpointsByPavilion}
                                 width={Dimensions.get('window').width - 48}
@@ -377,18 +384,20 @@ const ControladorDashboard = () => {
                             <Icon name="chevron-forward" size={20} color="#9CA3AF" />
                         </TouchableOpacity>
 
-                        {/* Registrar Checkpoints */}
-                        <TouchableOpacity 
-                            onPress={() => navigation.navigate('MarcarCheckpoints')}
-                            style={tw`bg-white rounded-xl p-4 shadow-sm flex-row items-center my-1`}
-                        >
-                            <Icon name="checkmark-circle-outline" size={24} color="#10B981" style={tw`mr-3`} />
-                            <View style={tw`flex-1`}>
-                                <Text style={tw`font-medium text-gray-800`}>Registrar Checkpoints</Text>
-                                <Text style={tw`text-sm text-gray-500`}>Marcar passagem de visitantes</Text>
-                            </View>
-                            <Icon name="chevron-forward" size={20} color="#9CA3AF" />
-                        </TouchableOpacity>
+                        {!stats.admin && (
+                            
+                            <TouchableOpacity 
+                                onPress={() => navigation.navigate('MarcarCheckpoints')}
+                                style={tw`bg-white rounded-xl p-4 shadow-sm flex-row items-center my-1`}
+                            >
+                                <Icon name="checkmark-circle-outline" size={24} color="#10B981" style={tw`mr-3`} />
+                                <View style={tw`flex-1`}>
+                                    <Text style={tw`font-medium text-gray-800`}>Registrar Checkpoints</Text>
+                                    <Text style={tw`text-sm text-gray-500`}>Marcar passagem de visitantes</Text>
+                                </View>
+                                <Icon name="chevron-forward" size={20} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        )}
 
                         {/* Controlar Agendamentos */}
                         <TouchableOpacity 

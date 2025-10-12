@@ -271,7 +271,7 @@ const AdminPainel = () => {
                     style={tw`p-2 mr-2 rounded ${checkpoint.allowOverride ? 'bg-green-100' : 'bg-gray-100'}`}
                   >
                     <Text style={tw`text-xs ${checkpoint.allowOverride ? 'text-green-700' : 'text-gray-700'}`}>
-                      {checkpoint.allowOverride ? 'Override ✓' : 'Override'}
+                      {checkpoint.allowOverride ? 'Desvio de Rota ✓' : 'Desvio de Rota'}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity 

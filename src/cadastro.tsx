@@ -72,7 +72,7 @@ const CadastroSpulse = () => {
             setEmail('');
             setPassword('');
             setCpf('');
-            navigation.navigate('Login');
+            navigation.navigate('OutrasFuncoes');
         } catch (error) {
             console.error('Erro ao cadastrar:', error);
             Alert.alert('Erro', error.message || 'Falha ao realizar o cadastro.');
@@ -190,7 +190,7 @@ const CadastroSpulse = () => {
 
                 {/* Back Button */}
                 <TouchableOpacity
-                    onPress={() => navigation.navigate('PageGeral')}
+                    onPress={() => navigation.navigate('ControladorDashboard')}
                     style={tw`mt-4 bg-gray-200 rounded-lg p-4`}
                 >
                     <Text style={tw`text-gray-800 font-medium text-center`}>Voltar</Text>

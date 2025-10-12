@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../services/supabase';
@@ -17,6 +17,36 @@ const CheckPoint = () => {
   const [loading, setLoading] = useState(false);
   const { currentLatitude, currentLongitude } = useLocation();
 
+
+  const [pavilionSearch, setPavilionSearch] = useState('');
+  const [pavilionPage, setPavilionPage] = useState(1);
+  const PAVILIONS_PER_PAGE = 5;
+
+  // Filtrar pavilhões pelo nome
+  const filteredPavilions = pavilions.filter(p =>
+    p.name.toLowerCase().includes(pavilionSearch.toLowerCase())
+  );
+
+  // Calcular pavilhões da página atual
+  const paginatedPavilions = filteredPavilions.slice(
+    (pavilionPage - 1) * PAVILIONS_PER_PAGE,
+    pavilionPage * PAVILIONS_PER_PAGE
+  );
+
+  const totalPavilionPages = Math.ceil(filteredPavilions.length / PAVILIONS_PER_PAGE);
+
+  const handlePrevPavilionPage = () => {
+    if (pavilionPage > 1) setPavilionPage(pavilionPage - 1);
+  };
+
+  const handleNextPavilionPage = () => {
+    if (pavilionPage < totalPavilionPages) setPavilionPage(pavilionPage + 1);
+  };
+
+  // Sempre que pesquisar, volta para página 1
+  useEffect(() => {
+    setPavilionPage(1);
+  }, [pavilionSearch]);
 
   const year = new Date().getFullYear();
 
@@ -122,8 +152,17 @@ const CheckPoint = () => {
 
       <View style={tw`mb-6`}>
         <Text style={tw`text-lg font-semibold text-gray-700 mb-2`}>Selecione o Pavilhão</Text>
+        
+        <TextInput
+          style={tw`border-2 border-gray-200 rounded-xl p-3 bg-gray-50 text-gray-800 mb-2`}
+          placeholder="Pesquisar pavilhão..."
+          placeholderTextColor="#9CA3AF"
+          value={pavilionSearch}
+          onChangeText={setPavilionSearch}
+        />
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw`flex-row mb-2`}>
-          {pavilions.map(p => (
+          {paginatedPavilions.map(p => (
             <TouchableOpacity
               key={p.id}
               onPress={() => setSelectedPavilion(p)}
@@ -132,7 +171,35 @@ const CheckPoint = () => {
               <Text style={tw`${selectedPavilion?.id === p.id ? 'text-green-700 font-semibold' : 'text-gray-700'}`}>{p.name}</Text>
             </TouchableOpacity>
           ))}
+          {paginatedPavilions.length === 0 && (
+            <View style={tw`p-4 items-center`}>
+              <Text style={tw`text-gray-600`}>Nenhum pavilhão encontrado</Text>
+            </View>
+          )}
         </ScrollView>
+
+        {/* Paginação dos pavilhões */}
+        {totalPavilionPages > 1 && (
+          <View style={tw`flex-row justify-center items-center mt-2`}>
+            <TouchableOpacity
+              onPress={handlePrevPavilionPage}
+              disabled={pavilionPage === 1}
+              style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${pavilionPage === 1 ? 'opacity-50' : ''}`}
+            >
+              <Text style={tw`text-gray-700`}>Anterior</Text>
+            </TouchableOpacity>
+            <Text style={tw`mx-2 text-gray-700`}>
+              Página {pavilionPage} de {totalPavilionPages}
+            </Text>
+            <TouchableOpacity
+              onPress={handleNextPavilionPage}
+              disabled={pavilionPage === totalPavilionPages}
+              style={tw`px-3 py-2 mx-1 rounded bg-gray-200 ${pavilionPage === totalPavilionPages ? 'opacity-50' : ''}`}
+            >
+              <Text style={tw`text-gray-700`}>Próxima</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <TouchableOpacity

@@ -64,7 +64,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
         // Função para lidar com deep links
         const handleDeepLink = (event) => {
             const link = event.url;
-            console.log('Deep link recebido:', link);
+            //console.log('Deep link recebido:', link);
             const prontuarioId = link.split('/').pop();
             
             if (prontuarioId) {
@@ -155,7 +155,7 @@ const PageGeral = ({ currentLatitude, currentLongitude, contextCurrentUser }) =>
             }
         } catch (ex) {
             console.warn(ex);
-            Alert.alert('Erro', 'Falha ao gravar o deep link no chip NFC.');
+            //Alert.alert('Erro', 'Falha ao gravar o deep link no chip NFC.');
         } finally {
             await NfcManager.cancelTechnologyRequest();
             setNfcWriting(false);

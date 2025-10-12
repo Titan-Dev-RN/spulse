@@ -171,7 +171,7 @@ const OutrasFuncoes = () => {
                 {/* Dashboard */}
                 <TouchableOpacity 
                     onPress={navigateToDashboard}
-                    style={tw`bg-blue-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                    style={tw`bg-blue-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                 >
                     <Icon name="speedometer" size={24} color="white" style={tw`mr-4`} />
                     <View style={tw`flex-1`}>
@@ -187,7 +187,7 @@ const OutrasFuncoes = () => {
                 {isAdmin && (
                     <TouchableOpacity 
                         onPress={navigateToCadastro}
-                        style={tw`bg-purple-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                        style={tw`bg-purple-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                     >
                         <Icon name="person-add" size={24} color="white" style={tw`mr-4`} />
                         <View style={tw`flex-1`}>
@@ -204,7 +204,7 @@ const OutrasFuncoes = () => {
                 {isAdmin && (
                     <TouchableOpacity 
                         onPress={navigateToAdminPainel}
-                        style={tw`bg-black flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                        style={tw`bg-black flex-row items-center rounded-xl p-5 shadow-md my-1`}
                     >
                         <Icon name="business" size={24} color="white" style={tw`mr-4`} />
                         <View style={tw`flex-1`}>
@@ -220,7 +220,7 @@ const OutrasFuncoes = () => {
                 {userPavilion && userPavilion.toString() === '1' && (
                     <TouchableOpacity 
                         onPress={() => navigation.navigate('RegistrarVisitante')}
-                        style={tw`bg-green-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                        style={tw`bg-green-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                     >
                         <Icon name="person-add" size={24} color="white" style={tw`mr-3`} />
                         <View style={tw`flex-1`}>
@@ -235,7 +235,7 @@ const OutrasFuncoes = () => {
                 {/* Ajuda (exemplo) */}
                 <TouchableOpacity 
                     onPress={() => navigation.navigate('Agendamento')}
-                    style={tw`bg-pink-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                    style={tw`bg-pink-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                 >
                     <Icon name="help-circle" size={24} color="white" style={tw`mr-4`} />
                     <View style={tw`flex-1`}>
@@ -250,7 +250,7 @@ const OutrasFuncoes = () => {
                 {/* Ajuda (exemplo) */}
                 <TouchableOpacity 
                     onPress={() => Alert.alert('Ajuda', 'Entre em contato com o suporte')}
-                    style={tw`bg-indigo-600 flex-row items-center rounded-xl p-5 shadow-md my-2`}
+                    style={tw`bg-indigo-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                 >
                     <Icon name="help-circle" size={24} color="white" style={tw`mr-4`} />
                     <View style={tw`flex-1`}>
