@@ -927,7 +927,8 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para de
 ## 📞 Suporte
 
 - **Email**: leoctescossia11@gmail.com
-- **Documentação**: [Wiki do Projeto](https://github.com/seu-usuario/s-pulse/wiki)
+- **Documentação**: [Wiki do Projeto](https://docs.google.com/document/d/1t5GoDoCOwiY_LvXCgCeJNx3ltKpH0Khn_EcNpMa1_Ok/edit?usp=sharing)
+- **Manual do Usuário**: [Manual do Projeto](https://docs.google.com/document/d/1jJ32iwPQ3DdhyCCJUfYPUxQP9E3e0HNW76FNEUswouM/edit?usp=sharing)
 
 ## 🏆 Caso de Uso: Presídio de Alcaçuz/RN
 
