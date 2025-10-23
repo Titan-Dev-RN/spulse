@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../services/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -249,18 +249,32 @@ const OutrasFuncoes = () => {
 
                 {/* Ajuda (exemplo) */}
                 <TouchableOpacity 
-                    onPress={() => Alert.alert('Ajuda', 'Entre em contato com o suporte')}
-                    style={tw`bg-indigo-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
+                onPress={async () => {
+                    const url = 'https://docs.google.com/document/d/1jJ32iwPQ3DdhyCCJUfYPUxQP9E3e0HNW76FNEUswouM/edit?usp=sharing';
+                    try {
+                    const supported = await Linking.canOpenURL(url);
+                    if (supported) {
+                        await Linking.openURL(url);
+                    } else {
+                        Alert.alert('Erro', 'Não foi possível abrir o link.');
+                    }
+                    } catch (err) {
+                    console.error('Erro ao abrir link:', err);
+                    Alert.alert('Erro', 'Não foi possível abrir o link.');
+                    }
+                }}
+                style={tw`bg-indigo-600 flex-row items-center rounded-xl p-5 shadow-md my-1`}
                 >
-                    <Icon name="help-circle" size={24} color="white" style={tw`mr-4`} />
-                    <View style={tw`flex-1`}>
-                        <Text style={tw`text-lg font-bold text-white`}>Ajuda & Suporte</Text>
-                        <Text style={tw`text-white opacity-90 text-sm`}>
-                            Precisa de ajuda? Clique aqui
-                        </Text>
-                    </View>
-                    <Icon name="chevron-forward" size={20} color="white" />
+                <Icon name="help-circle" size={24} color="white" style={tw`mr-4`} />
+                <View style={tw`flex-1`}>
+                    <Text style={tw`text-lg font-bold text-white`}>Ajuda & Suporte</Text>
+                    <Text style={tw`text-white opacity-90 text-sm`}>
+                        Precisa de ajuda? Clique aqui
+                    </Text>
+                </View>
+                <Icon name="chevron-forward" size={20} color="white" />
                 </TouchableOpacity>
+
             </View>
 
 
