@@ -8,7 +8,6 @@ import Prontuario from './src/prontuário';
 import Login from './src/login';
 import Cadastro from './src/cadastro';
 import ProntuarioScreen from './src/ProntuarioScreen';
-import InputCRUD from './src/inputprontuario';
 import CheckPoint from './src/checkpoint';
 import { useUserContext } from './src/UserContext';
 import { UserProvider } from './src/UserContext';

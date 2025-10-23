@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, Alert, Linking, ScrollView, Button, PermissionsAndroid, Platform } from 'react-native';
 import { supabase } from '../services/supabase';
-import { editProntuario } from './EditarProntuarios';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import FuncoesNFC from './FuncoesNFC'; // Importando o componente NFC
 import tw from 'tailwind-react-native-classnames';
 import NfcManager, { NfcTech, Ndef } from 'react-native-nfc-manager';
 import { fetchVisitors } from './EditarProntuarios';

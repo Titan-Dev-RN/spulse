@@ -7,6 +7,15 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
+    "build:android-bundle": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res/",
+    "build:ios-bundle": "react-native bundle --platform ios --dev false --entry-file index.js --bundle-output ios/main.jsbundle --assets-dest ios",
+    "build:android-apk": "cd android && ./gradlew assembleRelease",
+    "build:android-aab": "cd android && ./gradlew bundleRelease",
+    "build:ios": "cd ios && xcodebuild -workspace YourApp.xcworkspace -scheme YourApp -configuration Release -archivePath build/YourApp.xcarchive archive",
+    "clean:android": "cd android && ./gradlew clean",
+    "clean:ios": "cd ios && xcodebuild clean",
+    "clean:all": "npm run clean:android && npm run clean:ios && npx react-native start --reset-cache",
+    "build:all": "npm run build:android-bundle && npm run build:ios-bundle && npm run build:android-apk",
     "test": "jest"
   },
   "dependencies": {

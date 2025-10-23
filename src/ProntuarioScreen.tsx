@@ -716,7 +716,7 @@ const ProntuarioScreen = ({ route }) => {
             ) : (
                 <View style={tw`flex-1 justify-center items-center`}>
                     <ActivityIndicator size="large" color="#3B82F6" />
-                    <Text style={tw`text-lg text-gray-500 mt-4`}>Carregando dados do prontuário...</Text>
+                    <Text style={tw`text-lg text-gray-500 mt-4`}>Carregando dados da ficha...</Text>
                 </View>
             )}
 
