@@ -112,6 +112,10 @@ Criação de agendamentos com:
 6. **Agendar Visitas**: Programar visitas dos visitantes
 7. **Gerenciar NFC**: Ler e gravar pulseiras NFC
 
+### 📊 Dashboard Web
+- Tela de Login
+- Visualização de métricas dos visistantes
+
 ### 📍 Sistema de Checkpoints
 
 #### Registro de Checkpoints
